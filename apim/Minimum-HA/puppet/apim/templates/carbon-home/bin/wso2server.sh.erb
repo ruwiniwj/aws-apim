@@ -294,6 +294,9 @@ do
     -Djava.io.tmpdir="$CARBON_HOME/tmp" \
     -Dcatalina.base="$CARBON_HOME/lib/tomcat" \
     -Dwso2.server.standalone=true \
+ <%- if @enable_test_mode == "true" -%>
+     -javaagent:/usr/lib/wso2/wso2am/2.1.0/wso2am-2.1.0/repository/components/lib/jacoco-agent.jar=destfile=/usr/lib/wso2/wso2am/2.1.0/wso2am-2.1.0/repository/logs/jacoco.exec,append=true,includes=org.wso2.carbon.apimgt.api_:org.wso2.carbon.apimgt.gateway_:org.wso2.carbon.apimgt.hostobjects_:org.wso2.carbon.apimgt.impl_:org.wso2.carbon.apimgt.keymgt_:org.wso2.carbon.apimgt.keymgt.client_:org.wso2.carbon.throttle.core_:wso2-uri-templates_:wso2throttle-core_ \
+     <%- end -%>
     -Dcarbon.registry.root=/ \
     -Djava.command="$JAVACMD" \
     -Dcarbon.home="$CARBON_HOME" \

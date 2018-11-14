@@ -15,6 +15,15 @@
 #----------------------------------------------------------------------------
 
 # For custom configurations
-class apim::custom {
+class apim::custom inherits apim::params {
+
+  if $enable_test_mode == 'true' {
+    file { "/usr/lib/wso2/wso2am/2.1.0/wso2am-2.1.0/repository/components/lib/jacoco-agent.jar":
+      owner  => $user,
+      group  => $user_group,
+      mode   => '0754',
+      source => "puppet:///modules/installers/jacoco-agent.jar",
+    }
+  }
 
 }

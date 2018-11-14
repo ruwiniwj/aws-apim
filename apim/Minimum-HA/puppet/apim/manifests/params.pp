@@ -24,6 +24,7 @@ class apim::params {
   $service_name = 'wso2am'
   $hostname = 'CF_ELB_DNS_NAME'
   $mgt_hostname = 'CF_ELB_DNS_NAME'
+  $enable_test_mode = 'ENABLE_TEST_MODE'
   $jdk_version = 'JDK_TYPE'
   $aws_access_key = 'access-key'
   $aws_secret_key = 'secretkey'
@@ -59,21 +60,21 @@ class apim::params {
 
   # Master-datasources.xml
   $wso2_reg_db = {
-    url               => 'jdbc:mysql://CF_RDS_URL:3306/WSO2AM_REG_DB?autoReconnect=true&amp;useSSL=false',
+    url               => 'jdbc:mysql://CF_RDS_URL:3306/WSO2AM_COMMON_DB?autoReconnect=true&amp;useSSL=false',
     username          => 'CF_DB_USERNAME',
     password          => 'CF_DB_PASSWORD',
     driver_class_name => 'com.mysql.jdbc.Driver',
   }
 
   $wso2_um_db = {
-    url               => 'jdbc:mysql://CF_RDS_URL:3306/WSO2AM_USER_DB?autoReconnect=true&amp;useSSL=false',
+    url               => 'jdbc:mysql://CF_RDS_URL:3306/WSO2AM_COMMON_DB?autoReconnect=true&amp;useSSL=false',
     username          => 'CF_DB_USERNAME',
     password          => 'CF_DB_PASSWORD',
     driver_class_name => 'com.mysql.jdbc.Driver',
   }
 
   $wso2_am_db = {
-    url               => 'jdbc:mysql://CF_RDS_URL:3306/WSO2AM_DB?autoReconnect=true&amp;useSSL=false',
+    url               => 'jdbc:mysql://CF_RDS_URL:3306/WSO2AM_APIMGT_DB?autoReconnect=true&amp;useSSL=false',
     username          => 'CF_DB_USERNAME',
     password          => 'CF_DB_PASSWORD',
     driver_class_name => 'com.mysql.jdbc.Driver',
