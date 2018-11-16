@@ -25,6 +25,7 @@ Metadata:
           - AWSAccessKeySecret
           - KeyPairName
           - WSO2InstanceType
+          - OS
       - Label:
           default: Network Configuration
         Parameters:
@@ -34,26 +35,29 @@ Metadata:
         Parameters:
           - DBUsername
           - DBPassword
+          - DB
           - DBAllocationStorage
-          - DBClass
-          - DBEngine
-          - DBEngineVersion
+          - DBInstanceType
       - Label:
           default: Other Configuration
         Parameters:
           - CustomUserData
-          - JDKVersion
-          - ProductVersion
+          - JDK
+          - LogArchiveS3Bucket
+          - InternalPrepareForTest
       - Label:
           default: WUM Credentials
         Parameters:
           - WUMUsername
           - WUMPassword
+
     ParameterLabels:
       AWSAccessKeyId:
         default: AWS Access Key ID
       AWSAccessKeySecret:
         default: AWS Access Secret Key
+      OS:
+        default: OS
       CertificateName:
         default: SSL Certificate Name
       KeyPairName:
@@ -64,18 +68,14 @@ Metadata:
         default: Password
       DBAllocationStorage:
         default: Allocation Storage
-      DBClass:
-        default: Class Type
-      DBEngine:
-        default: Engine Type
-      DBEngineVersion:
-        default: Engine Version
-      JDKVersion:
-        default: JDK Version
-      TestMode:
+      DBInstanceType:
+        default: DB Instance Type
+      DB:
+        default: Database
+      JDK:
+        default: JDK
+      InternalPrepareForTest:
         default: Enable Test Mode
-      ProductVersion:
-        default: WSO2 Product Version
       CustomUserData:
         default: Customer User Data
       WUMUsername:
@@ -84,6 +84,9 @@ Metadata:
         default: Password
       WSO2InstanceType:
         default: Instance Type
+      LogArchiveS3Bucket:
+        default: Logs location at S3
+
 Resources:
   # networking configurations
   WSO2APIMVPC:
@@ -209,13 +212,13 @@ Resources:
     Properties:
       VPCSecurityGroups:
         - !Ref WSO2APIMDBInstanceSecurityGroup
-      DBInstanceClass: !Ref DBClass
+      DBInstanceClass: !Ref DBInstanceType
       AllocatedStorage: !Ref DBAllocationStorage
       BackupRetentionPeriod: '0'
       DBInstanceIdentifier: WSO2APIMDBInstance
       DBName: WSO2AM_DB
-      EngineVersion: !Ref DBEngineVersion
-      Engine: !Ref DBEngine
+      EngineVersion: !Select [1, !Split ["-", !Ref DB]]
+      Engine: !Select [0, !Split ["-", !Ref DB]]
       MasterUsername: !Ref DBUsername
       MasterUserPassword: !Ref DBPassword
       MultiAZ: 'false'
@@ -325,7 +328,7 @@ Resources:
       ImageId: !FindInMap
         - WSO2APIMAMIRegionMap
         - !Ref 'AWS::Region'
-        - Ubuntu180464bit
+        - !Ref OS
       InstanceType: t2.micro
       KeyName: !Ref KeyPairName
       Monitoring: 'false'
@@ -347,8 +350,8 @@ Resources:
       ImageId: !FindInMap
         - WSO2PuppetMasterRegionMap
         - !Ref 'AWS::Region'
-        - Ubuntu180464bit
-      InstanceType: !Ref WSO2InstanceType
+        - Ubuntu1804
+      InstanceType: t2.medium
       KeyName: !Ref KeyPairName
       Monitoring: 'false'
       Tags:
@@ -403,7 +406,7 @@ Resources:
             - !Join
               - ''
               - - sed -i "s/ENABLE_TEST_MODE/
-                - !Ref TestMode
+                - !Ref InternalPrepareForTest
                 - /g" /etc/puppet/code/environments/production/modules/apim/manifests/params.pp
             - !Join
               - ''
@@ -463,12 +466,12 @@ Resources:
             - !Join
              - ''
              - - sed -i "s/JDK_TYPE/
-               - !Ref JDKVersion
+               - !Ref JDK
                - /g" /etc/puppet/code/environments/production/modules/apim/manifests/params.pp
             - !Join
              - ''
              - - sed -i "s/JDK_TYPE/
-               - !Ref JDKVersion
+               - !Ref JDK
                - /g" /etc/puppet/code/environments/production/modules/apim_analytics_worker/manifests/params.pp
             - !Join
               - ''
@@ -515,7 +518,7 @@ Resources:
       ImageId: !FindInMap
         - WSO2APIMAMIRegionMap
         - !Ref 'AWS::Region'
-        - Ubuntu180464bit
+        - !Ref OS
       InstanceType: !Ref WSO2InstanceType
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
@@ -624,7 +627,7 @@ Resources:
       ImageId: !FindInMap
         - WSO2APIMAMIRegionMap
         - !Ref 'AWS::Region'
-        - Ubuntu180464bit
+        - !Ref OS
       InstanceType: !Ref WSO2InstanceType
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
@@ -784,7 +787,7 @@ Resources:
       ImageId: !FindInMap
         - WSO2APIMAMIRegionMap
         - !Ref 'AWS::Region'
-        - Ubuntu180464bit
+        - !Ref OS
       InstanceType: !Ref WSO2InstanceType
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
@@ -1035,13 +1038,16 @@ Parameters:
   CustomUserData:
     Type: String
     Default: "echo"
-  JDKVersion:
+  LogArchiveS3Bucket:
+      Type: String
+      Default: ""
+  JDK:
     Type: String
-    Default: "Open_JDK_8"
+    Default: "Open_JDK-8"
     AllowedValues:
-      - "Open_JDK_8"
-      - "Oracle_JDK_8"
-  TestMode:
+      - "Open_JDK-8"
+      - "Oracle_JDK-8"
+  InternalPrepareForTest:
     Type: String
     Default: False
     AllowedValues:
@@ -1071,7 +1077,12 @@ Parameters:
     Description: Provide storage size in Gigabytes
     Type: Number
     Default: 20
-  DBClass:
+  OS:
+    Type: String
+    Default: Ubuntu1804
+    AllowedValues:
+     - Ubuntu1804
+  DBInstanceType:
     Type: String
     Default: db.t2.medium
     AllowedValues:
@@ -1084,36 +1095,37 @@ Parameters:
       - db.m3.xlarge
       - db.m3.2xlarge
       - db.m4.large
-  DBEngine:
+  DB:
     Type: String
-    Default: ""
-  DBEngineVersion:
-    Type: String
-    Default: 5.7.22
+    Default: MySQL-5.7
+    AllowedValues:
+      - MySQL-5.6
+      - MySQL-5.7
+
 Mappings:
   WSO2PuppetMasterRegionMap:
     ap-southeast-2:
-      Ubuntu180464bit: ami-099e0f7a47eb876fc
+      Ubuntu1804: ami-0640957d2d651f77c
     eu-west-1:
-      Ubuntu180464bit: ami-0b5a0cecb516fe311
+      Ubuntu1804: ami-0f66e3cf65c05c5b7
     us-east-1:
-      Ubuntu180464bit: ami-08911bdf7a52b4393
+      Ubuntu1804: ami-03de0ff4f10bac671
     us-east-2:
-      Ubuntu180464bit: ami-084cac7363c03e48a
+      Ubuntu1804: ami-040312fc953fda326
     us-west-1:
-      Ubuntu180464bit: ami-09ea189689ec3a49b
+      Ubuntu1804: ami-0a7ec1fb75fcc4ee0
     us-west-2:
-      Ubuntu180464bit: ami-0dde1aa15a3775e6f
+      Ubuntu1804: ami-0a10d314412a119b4
   WSO2APIMAMIRegionMap:
     ap-southeast-2:
-      Ubuntu180464bit: ami-07a3bd4944eb120a0
+      Ubuntu1804: ami-07a3bd4944eb120a0
     eu-west-1:
-      Ubuntu180464bit: ami-00035f41c82244dab
+      Ubuntu1804: ami-00035f41c82244dab
     us-east-1:
-      Ubuntu180464bit: ami-0ac019f4fcb7cb7e6
+      Ubuntu1804: ami-0ac019f4fcb7cb7e6
     us-east-2:
-      Ubuntu180464bit: ami-0f65671a86f061fcd
+      Ubuntu1804: ami-0f65671a86f061fcd
     us-west-1:
-      Ubuntu180464bit: ami-063aa838bd7631e0b
+      Ubuntu1804: ami-063aa838bd7631e0b
     us-west-2:
-      Ubuntu180464bit: ami-0bbe6b35405ecebdb
+      Ubuntu1804: ami-0bbe6b35405ecebdb
