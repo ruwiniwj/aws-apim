@@ -1006,7 +1006,7 @@ Outputs:
   GatewayHttpsUrl:
     Value: !Join
       - ''
-      - - ''
+      - - 'https://'
         - !GetAtt
           - WSO2APIMLoadBalancer
           - DNSName
@@ -1015,7 +1015,7 @@ Outputs:
   GatewayHttpUrl:
     Value: !Join
       - ''
-      - - ''
+      - - 'http://'
         - !GetAtt
           - WSO2APIMLoadBalancer
           - DNSName
