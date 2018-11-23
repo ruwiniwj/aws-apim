@@ -967,6 +967,15 @@ Outputs:
           - DNSName
         - '/services'
     Description: APIM service carbon URL
+  MgtConsoleUrl:
+    Value: !Join
+      - ''
+      - - 'https://'
+        - !GetAtt
+          - WSO2APIMLoadBalancer
+          - DNSName
+        - '/carbon'
+    Description: APIM service carbon URL    
   PublisherUrl:
     Value: !Join
       - ''
