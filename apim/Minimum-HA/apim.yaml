@@ -967,7 +967,7 @@ Outputs:
           - DNSName
         - '/carbon'
     Description: APIM service carbon URL
-  MgtConsoleURL:
+  MgtConsoleUrl:
     Value: !Join
       - ''
       - - 'https://'
