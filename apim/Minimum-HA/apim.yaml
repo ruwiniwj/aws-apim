@@ -958,25 +958,16 @@ Resources:
     DependsOn:
       - WSO2APIMLoadBalancerSecurityGroup
 Outputs:
-  APIMServiceCarbonURL:
+  CarbonServerUrl:
     Value: !Join
       - ''
       - - 'https://'
         - !GetAtt
           - WSO2APIMLoadBalancer
           - DNSName
-        - '/carbon'
+        - '/services'
     Description: APIM service carbon URL
-  MgtConsoleUrl:
-    Value: !Join
-      - ''
-      - - 'https://'
-        - !GetAtt
-          - WSO2APIMLoadBalancer
-          - DNSName
-        - '/carbon'
-    Description: APIM service Management Console URL
-  APIMServicePublisherURL:
+  PublisherUrl:
     Value: !Join
       - ''
       - - 'https://'
@@ -985,7 +976,7 @@ Outputs:
           - DNSName
         - '/publisher'
     Description: APIM service publisher URL
-  APIMServiceStoreURL:
+  StoreUrl:
     Value: !Join
       - ''
       - - 'https://'
@@ -994,19 +985,37 @@ Outputs:
           - DNSName
         - '/store'
     Description: APIM service store URL
-  APIMGatewayHTTPSEndpoint:
+  AdminUrl:
     Value: !Join
       - ''
       - - 'https://'
         - !GetAtt
           - WSO2APIMLoadBalancer
           - DNSName
-        - ':8243'
-    Description: APIM HTTPS Gateway endpoint
-  APIMGatewayHTTPEndpoint:
+        - '/admin'
+    Description: APIM service admin URL
+  KeyManagerUrl:
     Value: !Join
       - ''
-      - - 'http://'
+      - - 'https://'
+        - !GetAtt
+          - WSO2APIMLoadBalancer
+          - DNSName
+        - '/services'
+    Description: APIM keymanager service admin URL  
+  GatewayHttpsUrl:
+    Value: !Join
+      - ''
+      - - ''
+        - !GetAtt
+          - WSO2APIMLoadBalancer
+          - DNSName
+        - ':8243'
+    Description: APIM HTTPS Gateway endpoint
+  GatewayHttpUrl:
+    Value: !Join
+      - ''
+      - - ''
         - !GetAtt
           - WSO2APIMLoadBalancer
           - DNSName
