@@ -25,7 +25,7 @@ Metadata:
           - AWSAccessKeySecret
           - KeyPairName
           - WSO2InstanceType
-          - OS
+          - OperatingSystem
       - Label:
           default: Network Configuration
         Parameters:
@@ -50,14 +50,13 @@ Metadata:
         Parameters:
           - WUMUsername
           - WUMPassword
-
     ParameterLabels:
       AWSAccessKeyId:
         default: AWS Access Key ID
       AWSAccessKeySecret:
         default: AWS Access Secret Key
-      OS:
-        default: OS
+      OperatingSystem:
+        default: OperatingSystem
       CertificateName:
         default: SSL Certificate Name
       KeyPairName:
@@ -217,6 +216,7 @@ Resources:
       BackupRetentionPeriod: '0'
       DBInstanceIdentifier: WSO2APIMDBInstance
       DBName: WSO2AM_DB
+      EngineVersion: !Ref DBEngineVersion
       EngineVersion: !Select [1, !Split ["-", !Ref DB]]
       Engine: !Select [0, !Split ["-", !Ref DB]]
       MasterUsername: !Ref DBUsername
@@ -313,12 +313,12 @@ Resources:
           ToPort: '5672'
           SourceSecurityGroupId: !Ref WSO2APIMLoadBalancerSecurityGroup
         - IpProtocol: tcp
-          FromPort: '5701'
-          ToPort: '5701'
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
           FromPort: '8140'
           ToPort: '8140'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '4000'
+          ToPort: '4000'
           CidrIp: 0.0.0.0/0
   WSO2BastionInstance:
     Type: 'AWS::EC2::Instance'
@@ -328,7 +328,7 @@ Resources:
       ImageId: !FindInMap
         - WSO2APIMAMIRegionMap
         - !Ref 'AWS::Region'
-        - !Ref OS
+        - Ubuntu1804
       InstanceType: t2.micro
       KeyName: !Ref KeyPairName
       Monitoring: 'false'
@@ -351,7 +351,7 @@ Resources:
         - WSO2PuppetMasterRegionMap
         - !Ref 'AWS::Region'
         - Ubuntu1804
-      InstanceType: t2.medium
+      InstanceType: !Ref WSO2InstanceType
       KeyName: !Ref KeyPairName
       Monitoring: 'false'
       Tags:
@@ -403,11 +403,6 @@ Resources:
                 - >-
                   /g"
                   /etc/puppet/code/environments/production/modules/apim/manifests/params.pp
-            - !Join
-              - ''
-              - - sed -i "s/ENABLE_TEST_MODE/
-                - !Ref InternalPrepareForTest
-                - /g" /etc/puppet/code/environments/production/modules/apim/manifests/params.pp
             - !Join
               - ''
               - - sed -i "s/CF_DB_USERNAME/
@@ -466,12 +461,12 @@ Resources:
             - !Join
              - ''
              - - sed -i "s/JDK_TYPE/
-               - !Ref JDK
+               - !Ref JDKVersion
                - /g" /etc/puppet/code/environments/production/modules/apim/manifests/params.pp
             - !Join
              - ''
              - - sed -i "s/JDK_TYPE/
-               - !Ref JDK
+               - !Ref JDKVersion
                - /g" /etc/puppet/code/environments/production/modules/apim_analytics_worker/manifests/params.pp
             - !Join
               - ''
@@ -518,7 +513,7 @@ Resources:
       ImageId: !FindInMap
         - WSO2APIMAMIRegionMap
         - !Ref 'AWS::Region'
-        - !Ref OS
+        - !Ref OperatingSystem
       InstanceType: !Ref WSO2InstanceType
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
@@ -554,24 +549,24 @@ Resources:
             - puppet agent -vt
             - 'if [ ! -d "/mnt/efs/deployment/server" ]; then'
             - '    mkdir -p /mnt/efs/deployment/server'
-            - '    cp -r /usr/lib/wso2/wso2am/2.1.0/wso2am-2.1.0/repository/deployment/server /mnt/efs/deployment'
+            - '    cp -r /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/deployment/server /mnt/efs/deployment'
             - fi
             - >-
               rm -rf
-              /usr/lib/wso2/wso2am/2.1.0/wso2am-2.1.0/repository/deployment/server
+              /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/deployment/server
             - >-
               ln -s /mnt/efs/deployment/server
-              /usr/lib/wso2/wso2am/2.1.0/wso2am-2.1.0/repository/deployment/server
+              /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/deployment/server
             - 'if [ ! -d "/mnt/efs/tenants" ]; then'
             - '    mkdir -p /mnt/efs/tenants'
-            - '    cp -r /usr/lib/wso2/wso2am/2.1.0/wso2am-2.1.0/repository/tenants /mnt/efs'
+            - '    cp -r /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/tenants /mnt/efs'
             - fi
             - >-
               rm -rf
-              /usr/lib/wso2/wso2am/2.1.0/wso2am-2.1.0/repository/tenants
+              /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/tenants
             - >-
               ln -s /mnt/efs/tenants
-              /usr/lib/wso2/wso2am/2.1.0/wso2am-2.1.0/repository/tenants
+              /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/tenants
             - apt-get install -y python3-pip
             - pip3 install boto3
             - echo "${WSO2APIMEFSFileSystem}:/ /mnt/efs efs defaults,_netdev 0 0" >> /etc/fstab
@@ -583,15 +578,15 @@ Resources:
                 - $PRIVATE_IP
                 - >-
                   /g"
-                  /usr/lib/wso2/wso2am/2.1.0/wso2am-2.1.0/repository/conf/axis2/axis2.xml
+                  /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/conf/axis2/axis2.xml
             - !Join
               - ''
               - - sed -i "s/CF_ANALYTICS_IP/
                 - $ANALYTICS_PRIVATE_IP
                 - >-
                   /g"
-                  /usr/lib/wso2/wso2am/2.1.0/wso2am-2.1.0/repository/conf/api-manager.xml
-            - /usr/lib/wso2/wso2am/2.1.0/wso2am-2.1.0/bin/wso2server.sh start
+                  /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/conf/api-manager.xml
+            - /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/bin/wso2server.sh start
             - echo 'export HISTTIMEFORMAT="%F %T "' >> /etc/profile.d/history.sh
             - cat /dev/null > ~/.bash_history && history -c
     DependsOn:
@@ -627,7 +622,7 @@ Resources:
       ImageId: !FindInMap
         - WSO2APIMAMIRegionMap
         - !Ref 'AWS::Region'
-        - !Ref OS
+        - !Ref OperatingSystem
       InstanceType: !Ref WSO2InstanceType
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
@@ -663,24 +658,24 @@ Resources:
             - puppet agent -vt
             - 'if [ ! -d "/mnt/efs/deployment/server" ]; then'
             - '    mkdir -p /mnt/efs/deployment/server'
-            - '    cp -r /usr/lib/wso2/wso2am/2.1.0/wso2am-2.1.0/repository/deployment/server /mnt/efs/deployment'
+            - '    cp -r /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/deployment/server /mnt/efs/deployment'
             - fi
             - >-
               rm -rf
-              /usr/lib/wso2/wso2am/2.1.0/wso2am-2.1.0/repository/deployment/server
+              /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/deployment/server
             - >-
               ln -s /mnt/efs/deployment/server
-              /usr/lib/wso2/wso2am/2.1.0/wso2am-2.1.0/repository/deployment/server
+              /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/deployment/server
             - 'if [ ! -d "/mnt/efs/tenants" ]; then'
             - '    mkdir -p /mnt/efs/tenants'
-            - '    cp -r /usr/lib/wso2/wso2am/2.1.0/wso2am-2.1.0/repository/tenants /mnt/efs'
+            - '    cp -r /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/tenants /mnt/efs'
             - fi
             - >-
               rm -rf
-              /usr/lib/wso2/wso2am/2.1.0/wso2am-2.1.0/repository/tenants
+              /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/tenants
             - >-
               ln -s /mnt/efs/tenants
-              /usr/lib/wso2/wso2am/2.1.0/wso2am-2.1.0/repository/tenants
+              /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/tenants
             - apt-get install -y python3-pip
             - pip3 install boto3
             - echo "${WSO2APIMEFSFileSystem}:/ /mnt/efs efs defaults,_netdev 0 0" >> /etc/fstab
@@ -692,15 +687,15 @@ Resources:
                 - $PRIVATE_IP
                 - >-
                   /g"
-                  /usr/lib/wso2/wso2am/2.1.0/wso2am-2.1.0/repository/conf/axis2/axis2.xml
+                  /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/conf/axis2/axis2.xml
             - !Join
               - ''
               - - sed -i "s/CF_ANALYTICS_IP/
                 - $ANALYTICS_PRIVATE_IP
                 - >-
                   /g"
-                  /usr/lib/wso2/wso2am/2.1.0/wso2am-2.1.0/repository/conf/api-manager.xml
-            - /usr/lib/wso2/wso2am/2.1.0/wso2am-2.1.0/bin/wso2server.sh start
+                  /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/conf/api-manager.xml
+            - /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/bin/wso2server.sh start
             - echo 'export HISTTIMEFORMAT="%F %T "' >> /etc/profile.d/history.sh
             - cat /dev/null > ~/.bash_history && history -c
     DependsOn:
@@ -787,7 +782,7 @@ Resources:
       ImageId: !FindInMap
         - WSO2APIMAMIRegionMap
         - !Ref 'AWS::Region'
-        - !Ref OS
+        - Ubuntu1804
       InstanceType: !Ref WSO2InstanceType
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
@@ -826,8 +821,8 @@ Resources:
                 - $PRIVATE_IP
                 - >-
                   /g"
-                  /usr/lib/wso2/wso2am-analytics/2.1.0/wso2am-analytics-2.1.0/conf/worker/deployment.yaml
-            - /usr/lib/wso2/wso2am-analytics/2.1.0/wso2am-analytics-2.1.0/bin/worker.sh start
+                  /usr/lib/wso2/wso2am-analytics/2.6.0/wso2am-analytics-2.6.0/conf/worker/deployment.yaml
+            - /usr/lib/wso2/wso2am-analytics/2.6.0/wso2am-analytics-2.6.0/bin/worker.sh start
             - echo 'export HISTTIMEFORMAT="%F %T "' >> /etc/profile.d/history.sh
             - cat /dev/null > ~/.bash_history && history -c
     DependsOn:
@@ -879,8 +874,8 @@ Resources:
           ToPort: '8280'
           CidrIp: 0.0.0.0/0
         - IpProtocol: tcp
-          FromPort: '5701'
-          ToPort: '5701'
+          FromPort: '4000'
+          ToPort: '4000'
           CidrIp: 0.0.0.0/0
       SecurityGroupEgress:
         - IpProtocol: tcp
@@ -904,8 +899,8 @@ Resources:
           ToPort: '8280'
           CidrIp: 0.0.0.0/0
         - IpProtocol: tcp
-          FromPort: '5701'
-          ToPort: '5701'
+          FromPort: '4000'
+          ToPort: '4000'
           CidrIp: 0.0.0.0/0
   WSO2APIMLoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
@@ -1038,26 +1033,17 @@ Parameters:
   CustomUserData:
     Type: String
     Default: "echo"
-  LogArchiveS3Bucket:
-      Type: String
-      Default: ""
-  JDK:
+  JDKVersion:
     Type: String
-    Default: "Open_JDK_8"
+    Default: "OPEN_JDK8"
     AllowedValues:
-      - "Open_JDK_8"
-      - "Oracle_JDK_8"
-  InternalPrepareForTest:
-    Type: String
-    Default: False
-    AllowedValues:
-      - False
-      - True
+      - "OPEN_JDK8"
+      - "ORACLE_JDK8"
   ProductVersion:
     Type: String
-    Default: 2.1.0
+    Default: 2.6.0
     AllowedValues:
-      - 2.1.0
+      - 2.6.0
   WUMPassword:
     Type: String
     Default: ""
@@ -1077,7 +1063,7 @@ Parameters:
     Description: Provide storage size in Gigabytes
     Type: Number
     Default: 20
-  OS:
+  OperatingSystem:
     Type: String
     Default: Ubuntu1804
     AllowedValues:
@@ -1105,17 +1091,17 @@ Parameters:
 Mappings:
   WSO2PuppetMasterRegionMap:
     ap-southeast-2:
-      Ubuntu1804: ami-0640957d2d651f77c
+       Ubuntu1804: ami-040c9bb86678a1957
     eu-west-1:
-      Ubuntu1804: ami-0f66e3cf65c05c5b7
+       Ubuntu1804: ami-0cdc3cf1fccfd7446
     us-east-1:
-      Ubuntu1804: ami-03de0ff4f10bac671
+       Ubuntu1804: ami-0d1fd76b39f5e5ae7
     us-east-2:
-      Ubuntu1804: ami-040312fc953fda326
+       Ubuntu1804: ami-0833e3280aa128cca
     us-west-1:
-      Ubuntu1804: ami-0a7ec1fb75fcc4ee0
+       Ubuntu1804: ami-0c478836da85e958f
     us-west-2:
-      Ubuntu1804: ami-0a10d314412a119b4
+       Ubuntu1804: ami-0d55b60caa4b3ac7c
   WSO2APIMAMIRegionMap:
     ap-southeast-2:
       Ubuntu1804: ami-07a3bd4944eb120a0

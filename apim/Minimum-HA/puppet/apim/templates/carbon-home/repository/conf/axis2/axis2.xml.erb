@@ -168,14 +168,16 @@
                          class="org.apache.axis2.format.PlainTextFormatter"/>
 
         <!--JSON Message Formatters-->
-	<messageFormatter contentType="application/json"
-                          class="org.apache.synapse.commons.json.JsonFormatter"/>
+        <messageFormatter contentType="application/json"
+                          class="org.apache.synapse.commons.json.JsonStreamFormatter"/>
         <!--messageFormatter contentType="application/json"
-                          class="org.apache.synapse.commons.json.JsonStreamFormatter"/-->
+                          class="org.apache.synapse.commons.json.JsonFormatter"/-->
         <messageFormatter contentType="application/json/badgerfish"
                           class="org.apache.axis2.json.JSONBadgerfishMessageFormatter"/>
         <messageFormatter contentType="text/javascript"
                           class="org.apache.axis2.json.JSONMessageFormatter"/>
+        <messageFormatter contentType="application/octet-stream" 
+                          class="org.wso2.carbon.relay.ExpandingMessageFormatter"/>
 
         <!-- See https://wso2.org/jira/browse/ESBJAVA-1725 before enabling bellow line -->
         <!--messageFormatter contentType=".*"
@@ -232,14 +234,17 @@
                         class="org.apache.axis2.format.PlainTextBuilder"/>
 
         <!--JSON Message Builders-->
-	<messageBuilder contentType="application/json"
-                        class="org.apache.synapse.commons.json.JsonBuilder"/>
+        <messageBuilder contentType="application/json"
+                        class="org.apache.synapse.commons.json.JsonStreamBuilder"/>
         <!--messageBuilder contentType="application/json"
-                        class="org.apache.synapse.commons.json.JsonStreamBuilder"/-->
+                        class="org.apache.synapse.commons.json.JsonBuilder"/-->
         <messageBuilder contentType="application/json/badgerfish"
                         class="org.apache.axis2.json.JSONBadgerfishOMBuilder"/>
         <messageBuilder contentType="text/javascript"
                         class="org.apache.axis2.json.JSONBuilder"/>
+        <messageBuilder contentType="application/octet-stream" 
+                        class="org.wso2.carbon.relay.BinaryRelayBuilder"/>
+
         <!--messageBuilder contentType="text/javascript"
                         class="org.apache.axis2.json.JSONStreamBuilder"/-->
 
@@ -543,6 +548,14 @@
                 <Password>wso2carbon</Password>
             </TrustStore>
         </parameter>
+        <!-- ============================================== -->
+        <!-- Configuration for Dynamic SSL Profile loading. -->
+        <!-- Configured for 10 mins. -->
+        <!-- ============================================== -->
+        <parameter name="dynamicSSLProfilesConfig">
+            <filePath>repository/resources/security/sslprofiles.xml</filePath>
+            <fileReadInterval>600000</fileReadInterval>
+        </parameter>
         <!--<parameter name="HostnameVerifier">DefaultAndLocalhost</parameter>-->
             <!--supports Strict|AllowAll|DefaultAndLocalhost or the default if none specified -->
     </transportSender>
@@ -601,6 +614,15 @@
         <parameter name="ws.outflow.dispatch.fault.sequence" locked="false">outflowFaultSeq</parameter>
     </transportSender>
 
+    <transportSender name="wss" class="org.wso2.carbon.websocket.transport.WebsocketTransportSender">
+        <parameter name="ws.outflow.dispatch.sequence" locked="false">outflowDispatchSeq</parameter>
+        <parameter name="ws.outflow.dispatch.fault.sequence" locked="false">outflowFaultSeq</parameter>
+        <parameter name="ws.trust.store" locked="false">
+            <ws.trust.store.location>repository/resources/security/client-truststore.jks</ws.trust.store.location>
+            <ws.trust.store.Password>wso2carbon</ws.trust.store.Password>
+        </parameter>
+    </transportSender>
+
     <!--<transportSender name="https"-->
                      <!--class="org.apache.axis2.transport.http.CommonsHTTPTransportSender">-->
         <!--<parameter name="PROTOCOL">HTTP/1.1</parameter>-->
@@ -633,7 +655,7 @@
      getting this node to join the cluster.
      -->
     <clustering class="org.wso2.carbon.core.clustering.hazelcast.HazelcastClusteringAgent"
-                enable="<%= @clustering['enabled'] %>">
+                enable="true">
 
         <!--
            This parameter indicates whether the cluster has to be automatically initalized
@@ -656,13 +678,17 @@
                     Service (GMS) using a TCP ping mechanism.
         -->
         <parameter name="membershipScheme">aws</parameter>
+
+
         <parameter name="accessKey"><%= @aws_access_key %></parameter>
         <parameter name="secretKey"><%= @aws_secret_key %></parameter>
         <parameter name="securityGroup">WSO2SecurityGroup</parameter>
         <parameter name="region"><%= @aws_region %></parameter>
         <parameter name="tagKey">cluster</parameter>
         <parameter name="tagValue">apim</parameter>
-        <!--<parameter name="licenseKey">xxx</parameter>-->
+
+
+	<!--<parameter name="licenseKey">xxx</parameter>-->
         <!--<parameter name="mgtCenterURL">http://localhost:8081/mancenter/</parameter>-->
 
         <!--
@@ -675,11 +701,11 @@
         <!--<parameter name="mcastAddress">228.0.0.4</parameter>-->
 
         <!-- The multicast port to be used -->
-        <parameter name="mcastPort">45564</parameter>
+        <!-- <parameter name="mcastPort">45564</parameter> -->
 
-        <parameter name="mcastTTL">100</parameter>
+        <!-- <parameter name="mcastTTL">100</parameter> -->
 
-        <parameter name="mcastTimeout">60</parameter>
+        <!-- <parameter name="mcastTimeout">60</parameter> -->
 
         <!--
            The IP address of the network interface to which the multicasting has to be bound to.
@@ -713,7 +739,7 @@
             is the port to which this member is bound to.
         -->
         <!--
-        <parameter name="localMemberBindPort">4001</parameter>
+        <parameter name="localMemberBindPort">4000</parameter>
         -->
 
         <!--
@@ -724,6 +750,17 @@
             <property name="mgtConsoleURL" value="https://${hostName}:${httpsPort}/"/>
             <property name="subDomain" value="worker"/>
         </parameter>
+
+        <!--
+        Uncomment the following section to load custom Hazelcast data serializers.
+        -->
+        <!--
+        <parameter name="hazelcastSerializers">
+            <serializer typeClass="java.util.TreeSet">org.wso2.carbon.hazelcast.serializer.TreeSetSerializer
+            </serializer>
+            <serializer typeClass="java.util.Map">org.wso2.carbon.hazelcast.serializer.MapSerializer</serializer>
+        </parameter>
+        -->
 
         <!--
            The list of static or well-known members. These entries will only be valid if the
