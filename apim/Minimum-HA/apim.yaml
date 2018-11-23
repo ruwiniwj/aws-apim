@@ -313,12 +313,12 @@ Resources:
           ToPort: '5672'
           SourceSecurityGroupId: !Ref WSO2APIMLoadBalancerSecurityGroup
         - IpProtocol: tcp
-          FromPort: '8140'
-          ToPort: '8140'
+          FromPort: '5701'
+          ToPort: '5701'
           CidrIp: 0.0.0.0/0
         - IpProtocol: tcp
-          FromPort: '4000'
-          ToPort: '4000'
+          FromPort: '8140'
+          ToPort: '8140'
           CidrIp: 0.0.0.0/0
   WSO2BastionInstance:
     Type: 'AWS::EC2::Instance'
@@ -879,8 +879,8 @@ Resources:
           ToPort: '8280'
           CidrIp: 0.0.0.0/0
         - IpProtocol: tcp
-          FromPort: '4000'
-          ToPort: '4000'
+          FromPort: '5701'
+          ToPort: '5701'
           CidrIp: 0.0.0.0/0
       SecurityGroupEgress:
         - IpProtocol: tcp
@@ -904,8 +904,8 @@ Resources:
           ToPort: '8280'
           CidrIp: 0.0.0.0/0
         - IpProtocol: tcp
-          FromPort: '4000'
-          ToPort: '4000'
+          FromPort: '5701'
+          ToPort: '5701'
           CidrIp: 0.0.0.0/0
   WSO2APIMLoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
@@ -1043,10 +1043,10 @@ Parameters:
       Default: ""
   JDK:
     Type: String
-    Default: "Open_JDK-8"
+    Default: "Open_JDK_8"
     AllowedValues:
-      - "Open_JDK-8"
-      - "Oracle_JDK-8"
+      - "Open_JDK_8"
+      - "Oracle_JDK_8"
   InternalPrepareForTest:
     Type: String
     Default: False
