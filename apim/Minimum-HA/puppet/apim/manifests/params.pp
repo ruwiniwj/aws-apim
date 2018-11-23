@@ -1,4 +1,4 @@
-#----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 #  Copyright (c) 2018 WSO2, Inc. http://www.wso2.org
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,8 +12,10 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
-#----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 
+# Class apim::params
+# This class includes all the necessary parameters.
 class apim::params {
 
   $user = 'wso2carbon'
@@ -24,6 +26,7 @@ class apim::params {
   $service_name = 'wso2am'
   $hostname = 'CF_ELB_DNS_NAME'
   $mgt_hostname = 'CF_ELB_DNS_NAME'
+  $enable_test_mode = 'ENABLE_TEST_MODE'
   $jdk_version = 'JDK_TYPE'
   $aws_access_key = 'access-key'
   $aws_secret_key = 'secretkey'
@@ -31,9 +34,9 @@ class apim::params {
   $local_member_host = $::ipaddress
   $http_proxy_port  = '80'
   $https_proxy_port = '443'
-  $apim_package = 'wso2am-2.1.0.zip'
+  $am_package = 'wso2am-2.6.0.zip'
 
-  # Define the templates
+  # Define the template
   $start_script_template = 'bin/wso2server.sh'
 
   $template_list = [
@@ -57,26 +60,20 @@ class apim::params {
     $jdk_path = "jdk1.8.0_192"
   }
 
-  # Master-datasources.xml
-  $wso2_reg_db = {
-    url               => 'jdbc:mysql://CF_RDS_URL:3306/WSO2AM_REG_DB?autoReconnect=true&amp;useSSL=false',
-    username          => 'CF_DB_USERNAME',
-    password          => 'CF_DB_PASSWORD',
-    driver_class_name => 'com.mysql.jdbc.Driver',
+  # ----- api-manager.xml config params -----
+  $auth_manager = {
+    server_url                => 'https://localhost:${mgt.transport.https.port}${carbon.context}services/',
+    username                  => '${admin.username}',
+    password                  => '${admin.password}',
+    check_permission_remotely => 'false'
   }
 
-  $wso2_um_db = {
-    url               => 'jdbc:mysql://CF_RDS_URL:3306/WSO2AM_USER_DB?autoReconnect=true&amp;useSSL=false',
-    username          => 'CF_DB_USERNAME',
-    password          => 'CF_DB_PASSWORD',
-    driver_class_name => 'com.mysql.jdbc.Driver',
-  }
-
-  $wso2_am_db = {
-    url               => 'jdbc:mysql://CF_RDS_URL:3306/WSO2AM_DB?autoReconnect=true&amp;useSSL=false',
-    username          => 'CF_DB_USERNAME',
-    password          => 'CF_DB_PASSWORD',
-    driver_class_name => 'com.mysql.jdbc.Driver',
+  $api_gateway = {
+    server_url          => 'https://localhost:${mgt.transport.https.port}${carbon.context}services/',
+    username            => '${admin.username}',
+    password            => '${admin.password}',
+    gateway_endpoint    => 'http://CF_ELB_DNS_NAME:${http.nio.port},https://CF_ELB_DNS_NAME:${https.nio.port}',
+    gateway_ws_endpoint => 'ws://${carbon.local.ip}:9099'
   }
 
   $api_store = {
@@ -90,29 +87,39 @@ class apim::params {
     url => 'https://CF_ELB_DNS_NAME:${mgt.transport.https.port}/publisher'
   }
 
-  $api_gateway = {
-    server_url          => 'https://localhost:${mgt.transport.https.port}${carbon.context}services/',
-    username            => '${admin.username}',
-    password            => '${admin.password}',
-    gateway_endpoint    => 'http://CF_ELB_DNS_NAME:${http.nio.port},https://CF_ELB_DNS_NAME:${https.nio.port}',
-    gateway_ws_endpoint => 'ws://${carbon.local.ip}:9099'
+  # ----- Master-datasources config params -----
+
+  $wso2_am_db = {
+    url               => 'jdbc:mysql://CF_RDS_URL:3306/WSO2AM_APIMGT_DB?autoReconnect=true&amp;useSSL=false',
+    username          => 'wso2carbon',
+    password          => 'wso2carbon',
+    driver_class_name => 'com.mysql.jdbc.Driver',
   }
 
-  $clustering               = {
-    enabled => true,
+  $wso2_um_db = {
+    url               => 'jdbc:mysql://CF_RDS_URL:3306/WSO2AM_COMMON_DB?autoReconnect=true&amp;useSSL=false',
+    username          => 'wso2carbon',
+    password          => 'wso2carbon',
+    driver_class_name => 'com.mysql.jdbc.Driver',
   }
 
-  # Carbon.xml
-  $ports_offset = 0
+  $wso2_reg_db = {
+    url               => 'jdbc:mysql://CF_RDS_URL:3306/WSO2AM_COMMON_DB?autoReconnect=true&amp;useSSL=false',
+    username          => 'wso2carbon',
+    password          => 'wso2carbon',
+    driver_class_name => 'com.mysql.jdbc.Driver',
+  }
 
-  # user-mgt.xml
-  $enable_scim = true
+  # ----- Carbon.xml config params -----
+  $ports = {
+    offset => 0
+  }
 
   $key_store = {
+    location     => '${carbon.home}/repository/resources/security/wso2carbon.jks',
     type         => 'JKS',
     password     => 'wso2carbon',
     key_alias    => 'wso2carbon',
-    location     => '${carbon.home}/repository/resources/security/wso2carbon.jks',
     key_password => 'wso2carbon',
   }
 

@@ -27,7 +27,6 @@
         -->
         <Connector protocol="org.apache.coyote.http11.Http11NioProtocol"
                    port="9763"
-                   proxyPort="<%= @http_proxy_port %>"
                    redirectPort="9443"
                    bindOnInit="false"
                    maxHttpHeaderSize="8192"
@@ -53,7 +52,6 @@
         -->
         <Connector protocol="org.apache.coyote.http11.Http11NioProtocol"
                    port="9443"
-                   proxyPort="<%= @https_proxy_port %>"
                    bindOnInit="false"
                    sslProtocol="TLS"
                    sslEnabledProtocols="TLSv1,TLSv1.1,TLSv1.2"
@@ -94,7 +92,13 @@
                        pattern="combined"/>
                 <Valve className="org.wso2.carbon.tomcat.ext.valves.CarbonStuckThreadDetectionValve" threshold="600"/>
                 <Valve className="org.wso2.carbon.tomcat.ext.valves.CompositeValve"/>
+
+		<!-- Authentication and Authorization valve for the rest apis and we can configure context for this in identity.xml  -->
+                <Valve className="org.wso2.carbon.identity.auth.valve.AuthenticationValve"/>
+                <Valve className="org.wso2.carbon.identity.authz.valve.AuthorizationValve"/>
+                <Valve className="org.wso2.carbon.identity.context.rewrite.valve.TenantContextRewriteValve"/>
             </Host>
         </Engine>
     </Service>
 </Server>
+

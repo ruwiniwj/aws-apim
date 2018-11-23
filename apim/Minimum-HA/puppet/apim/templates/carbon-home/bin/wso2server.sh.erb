@@ -33,7 +33,7 @@
 # OS specific support.  $var _must_ be set to either true or false.
 #ulimit -n 100000
 
-JAVA_HOME="/usr/lib/wso2/wso2am/2.1.0/<%= @jdk_path %>";
+JAVA_HOME="/usr/lib/wso2/wso2am/2.6.0/<%= @jdk_path %>";
 cygwin=false;
 darwin=false;
 os400=false;
@@ -157,6 +157,17 @@ do
           CMD="restart"
     elif [ "$c" = "--test" ] || [ "$c" = "-test" ] || [ "$c" = "test" ]; then
           CMD="test"
+    elif [ "$c" = "--optimize" ] || [ "$c" = "-optimize" ] || [ "$c" = "optimize" ]; then
+          for profile in $*
+          do
+            case "$profile" in
+              *Dprofile=*)
+                cd $(dirname "$0")
+                sh profileSetup.sh $profile
+                echo "Starting the server..."
+                ;;
+            esac
+          done
     else
         args="$args $c"
     fi
@@ -262,7 +273,7 @@ cd "$CARBON_HOME"
 
 TMP_DIR="$CARBON_HOME"/tmp
 if [ -d "$TMP_DIR" ]; then
-rm -rf "$TMP_DIR"/*
+rm -rf "$TMP_DIR"
 fi
 
 START_EXIT_STATUS=121
@@ -313,8 +324,9 @@ do
     -Dfile.encoding=UTF8 \
     -Djava.net.preferIPv4Stack=true \
     -Dcom.ibm.cacheLocalHost=true \
+    -Dorg.opensaml.httpclient.https.disableHostnameVerification=true \
+    -Dhttpclient.hostnameVerifier=AllowAll \
     -DworkerNode=false \
-    -Dorg.wso2.ignoreHostnameVerification=true \
     org.wso2.carbon.bootstrap.Bootstrap $*
     status=$?
 done

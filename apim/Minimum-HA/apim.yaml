@@ -23,9 +23,9 @@ Metadata:
         Parameters:
           - AWSAccessKeyId
           - AWSAccessKeySecret
-          - AMIId
           - KeyPairName
           - WSO2InstanceType
+          - OperatingSystem
       - Label:
           default: Network Configuration
         Parameters:
@@ -35,16 +35,16 @@ Metadata:
         Parameters:
           - DBUsername
           - DBPassword
+          - DB
           - DBAllocationStorage
-          - DBClass
-          - DBEngine
-          - DBEngineVersion
+          - DBInstanceType
       - Label:
           default: Other Configuration
         Parameters:
           - CustomUserData
-          - JDKVersion
-          - ProductVersion
+          - JDK
+          - LogArchiveS3Bucket
+          - InternalPrepareForTest
       - Label:
           default: WUM Credentials
         Parameters:
@@ -55,8 +55,8 @@ Metadata:
         default: AWS Access Key ID
       AWSAccessKeySecret:
         default: AWS Access Secret Key
-      AMIId:
-        default: AMI
+      OperatingSystem:
+        default: OperatingSystem
       CertificateName:
         default: SSL Certificate Name
       KeyPairName:
@@ -67,16 +67,14 @@ Metadata:
         default: Password
       DBAllocationStorage:
         default: Allocation Storage
-      DBClass:
-        default: Class Type
-      DBEngine:
-        default: Engine Type
-      DBEngineVersion:
-        default: Engine Version
-      JDKVersion:
-        default: JDK Version
-      ProductVersion:
-        default: WSO2 Product Version
+      DBInstanceType:
+        default: DB Instance Type
+      DB:
+        default: Database
+      JDK:
+        default: JDK
+      InternalPrepareForTest:
+        default: Enable Test Mode
       CustomUserData:
         default: Customer User Data
       WUMUsername:
@@ -85,6 +83,9 @@ Metadata:
         default: Password
       WSO2InstanceType:
         default: Instance Type
+      LogArchiveS3Bucket:
+        default: Logs location at S3
+
 Resources:
   # networking configurations
   WSO2APIMVPC:
@@ -210,13 +211,14 @@ Resources:
     Properties:
       VPCSecurityGroups:
         - !Ref WSO2APIMDBInstanceSecurityGroup
-      DBInstanceClass: !Ref DBClass
+      DBInstanceClass: !Ref DBInstanceType
       AllocatedStorage: !Ref DBAllocationStorage
       BackupRetentionPeriod: '0'
       DBInstanceIdentifier: WSO2APIMDBInstance
       DBName: WSO2AM_DB
       EngineVersion: !Ref DBEngineVersion
-      Engine: !Ref DBEngine
+      EngineVersion: !Select [1, !Split ["-", !Ref DB]]
+      Engine: !Select [0, !Split ["-", !Ref DB]]
       MasterUsername: !Ref DBUsername
       MasterUserPassword: !Ref DBPassword
       MultiAZ: 'false'
@@ -323,7 +325,10 @@ Resources:
     Properties:
       DisableApiTermination: 'false'
       InstanceInitiatedShutdownBehavior: stop
-      ImageId: !Ref AMIId
+      ImageId: !FindInMap
+        - WSO2APIMAMIRegionMap
+        - !Ref 'AWS::Region'
+        - Ubuntu1804
       InstanceType: t2.micro
       KeyName: !Ref KeyPairName
       Monitoring: 'false'
@@ -342,7 +347,10 @@ Resources:
     Properties:
       DisableApiTermination: 'false'
       InstanceInitiatedShutdownBehavior: stop
-      ImageId: !Ref AMIId
+      ImageId: !FindInMap
+        - WSO2PuppetMasterRegionMap
+        - !Ref 'AWS::Region'
+        - Ubuntu1804
       InstanceType: !Ref WSO2InstanceType
       KeyName: !Ref KeyPairName
       Monitoring: 'false'
@@ -502,7 +510,10 @@ Resources:
   WSO2APIMNode1LaunchConfiguration:
     Type: 'AWS::AutoScaling::LaunchConfiguration'
     Properties:
-      ImageId: !Ref AMIId
+      ImageId: !FindInMap
+        - WSO2APIMAMIRegionMap
+        - !Ref 'AWS::Region'
+        - !Ref OperatingSystem
       InstanceType: !Ref WSO2InstanceType
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
@@ -538,24 +549,24 @@ Resources:
             - puppet agent -vt
             - 'if [ ! -d "/mnt/efs/deployment/server" ]; then'
             - '    mkdir -p /mnt/efs/deployment/server'
-            - '    cp -r /usr/lib/wso2/wso2am/2.1.0/wso2am-2.1.0/repository/deployment/server /mnt/efs/deployment'
+            - '    cp -r /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/deployment/server /mnt/efs/deployment'
             - fi
             - >-
               rm -rf
-              /usr/lib/wso2/wso2am/2.1.0/wso2am-2.1.0/repository/deployment/server
+              /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/deployment/server
             - >-
               ln -s /mnt/efs/deployment/server
-              /usr/lib/wso2/wso2am/2.1.0/wso2am-2.1.0/repository/deployment/server
+              /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/deployment/server
             - 'if [ ! -d "/mnt/efs/tenants" ]; then'
             - '    mkdir -p /mnt/efs/tenants'
-            - '    cp -r /usr/lib/wso2/wso2am/2.1.0/wso2am-2.1.0/repository/tenants /mnt/efs'
+            - '    cp -r /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/tenants /mnt/efs'
             - fi
             - >-
               rm -rf
-              /usr/lib/wso2/wso2am/2.1.0/wso2am-2.1.0/repository/tenants
+              /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/tenants
             - >-
               ln -s /mnt/efs/tenants
-              /usr/lib/wso2/wso2am/2.1.0/wso2am-2.1.0/repository/tenants
+              /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/tenants
             - apt-get install -y python3-pip
             - pip3 install boto3
             - echo "${WSO2APIMEFSFileSystem}:/ /mnt/efs efs defaults,_netdev 0 0" >> /etc/fstab
@@ -567,15 +578,15 @@ Resources:
                 - $PRIVATE_IP
                 - >-
                   /g"
-                  /usr/lib/wso2/wso2am/2.1.0/wso2am-2.1.0/repository/conf/axis2/axis2.xml
+                  /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/conf/axis2/axis2.xml
             - !Join
               - ''
               - - sed -i "s/CF_ANALYTICS_IP/
                 - $ANALYTICS_PRIVATE_IP
                 - >-
                   /g"
-                  /usr/lib/wso2/wso2am/2.1.0/wso2am-2.1.0/repository/conf/api-manager.xml
-            - /usr/lib/wso2/wso2am/2.1.0/wso2am-2.1.0/bin/wso2server.sh start
+                  /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/conf/api-manager.xml
+            - /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/bin/wso2server.sh start
             - echo 'export HISTTIMEFORMAT="%F %T "' >> /etc/profile.d/history.sh
             - cat /dev/null > ~/.bash_history && history -c
     DependsOn:
@@ -599,13 +610,19 @@ Resources:
         - Key: Name
           Value: WSO2APIMInstance1
           PropagateAtLaunch: 'true'
+        - Key: cluster
+          Value: apim
+          PropagateAtLaunch: 'true'
     DependsOn:
       - WSO2APIMLoadBalancer
       - WSO2APIMNode1LaunchConfiguration
   WSO2APIMNode2LaunchConfiguration:
     Type: 'AWS::AutoScaling::LaunchConfiguration'
     Properties:
-      ImageId: !Ref AMIId
+      ImageId: !FindInMap
+        - WSO2APIMAMIRegionMap
+        - !Ref 'AWS::Region'
+        - !Ref OperatingSystem
       InstanceType: !Ref WSO2InstanceType
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
@@ -641,28 +658,28 @@ Resources:
             - puppet agent -vt
             - 'if [ ! -d "/mnt/efs/deployment/server" ]; then'
             - '    mkdir -p /mnt/efs/deployment/server'
-            - '    cp -r /usr/lib/wso2/wso2am/2.1.0/wso2am-2.1.0/repository/deployment/server /mnt/efs/deployment'
+            - '    cp -r /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/deployment/server /mnt/efs/deployment'
             - fi
             - >-
               rm -rf
-              /usr/lib/wso2/wso2am/2.1.0/wso2am-2.1.0/repository/deployment/server
+              /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/deployment/server
             - >-
               ln -s /mnt/efs/deployment/server
-              /usr/lib/wso2/wso2am/2.1.0/wso2am-2.1.0/repository/deployment/server
+              /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/deployment/server
             - 'if [ ! -d "/mnt/efs/tenants" ]; then'
             - '    mkdir -p /mnt/efs/tenants'
-            - '    cp -r /usr/lib/wso2/wso2am/2.1.0/wso2am-2.1.0/repository/tenants /mnt/efs'
+            - '    cp -r /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/tenants /mnt/efs'
             - fi
             - >-
               rm -rf
-              /usr/lib/wso2/wso2am/2.1.0/wso2am-2.1.0/repository/tenants
+              /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/tenants
             - >-
               ln -s /mnt/efs/tenants
-              /usr/lib/wso2/wso2am/2.1.0/wso2am-2.1.0/repository/tenants
+              /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/tenants
             - apt-get install -y python3-pip
             - pip3 install boto3
             - echo "${WSO2APIMEFSFileSystem}:/ /mnt/efs efs defaults,_netdev 0 0" >> /etc/fstab
-            - !Sub "PRIVATE_IP=$(python3 /usr/local/bin/private_ip_extractor.py ${AWS::Region} ${AWSAccessKeyId} ${AWSAccessKeySecret} WSO2APIMInstance2)"
+            - !Sub "PRIVATE_IP=$(python3 /usr/local/bin/private_ip_extractor.py ${AWS::Region} ${AWSAccessKeyId} ${AWSAccessKeySecret} WSO2APIMInstance1)"
             - !Sub "ANALYTICS_PRIVATE_IP=$(python3 /usr/local/bin/private_ip_extractor.py ${AWS::Region} ${AWSAccessKeyId} ${AWSAccessKeySecret} WSO2APIMAnalyticsInstance1)"
             - !Join
               - ''
@@ -670,15 +687,15 @@ Resources:
                 - $PRIVATE_IP
                 - >-
                   /g"
-                  /usr/lib/wso2/wso2am/2.1.0/wso2am-2.1.0/repository/conf/axis2/axis2.xml
+                  /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/conf/axis2/axis2.xml
             - !Join
               - ''
               - - sed -i "s/CF_ANALYTICS_IP/
                 - $ANALYTICS_PRIVATE_IP
                 - >-
                   /g"
-                  /usr/lib/wso2/wso2am/2.1.0/wso2am-2.1.0/repository/conf/api-manager.xml
-            - /usr/lib/wso2/wso2am/2.1.0/wso2am-2.1.0/bin/wso2server.sh start
+                  /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/conf/api-manager.xml
+            - /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/bin/wso2server.sh start
             - echo 'export HISTTIMEFORMAT="%F %T "' >> /etc/profile.d/history.sh
             - cat /dev/null > ~/.bash_history && history -c
     DependsOn:
@@ -718,23 +735,23 @@ Resources:
         - IpProtocol: tcp
           FromPort: '4040'
           ToPort: '4040'
-          SourceSecurityGroupId: !Ref WSO2APIMAnalyticsLoadBalancerSecurityGroup
+          CidrIp: 0.0.0.0/0
         - IpProtocol: tcp
           FromPort: '9091'
           ToPort: '9091'
-          SourceSecurityGroupId: !Ref WSO2APIMAnalyticsLoadBalancerSecurityGroup
+          CidrIp: 0.0.0.0/0
         - IpProtocol: tcp
           FromPort: '9764'
           ToPort: '9764'
-          SourceSecurityGroupId: !Ref WSO2APIMAnalyticsLoadBalancerSecurityGroup
+          CidrIp: 0.0.0.0/0
         - IpProtocol: tcp
           FromPort: '9713'
           ToPort: '9713'
-          SourceSecurityGroupId: !Ref WSO2APIMAnalyticsLoadBalancerSecurityGroup
+          CidrIp: 0.0.0.0/0
         - IpProtocol: tcp
           FromPort: '9613'
           ToPort: '9613'
-          SourceSecurityGroupId: !Ref WSO2APIMAnalyticsLoadBalancerSecurityGroup
+          CidrIp: 0.0.0.0/0
         - IpProtocol: tcp
           FromPort: '7071'
           ToPort: '7071'
@@ -746,11 +763,11 @@ Resources:
         - IpProtocol: tcp
           FromPort: '9444'
           ToPort: '9444'
-          SourceSecurityGroupId: !Ref WSO2APIMAnalyticsLoadBalancerSecurityGroup
+          CidrIp: 0.0.0.0/0
         - IpProtocol: tcp
           FromPort: '9711'
           ToPort: '9711'
-          SourceSecurityGroupId: !Ref WSO2APIMAnalyticsLoadBalancerSecurityGroup
+          CidrIp: 0.0.0.0/0
         - IpProtocol: tcp
           FromPort: '7612'
           ToPort: '7612'
@@ -762,7 +779,10 @@ Resources:
   WSO2APIMAnalyticsNode1LaunchConfiguration:
     Type: 'AWS::AutoScaling::LaunchConfiguration'
     Properties:
-      ImageId: !Ref AMIId
+      ImageId: !FindInMap
+        - WSO2APIMAMIRegionMap
+        - !Ref 'AWS::Region'
+        - Ubuntu1804
       InstanceType: !Ref WSO2InstanceType
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
@@ -801,13 +821,12 @@ Resources:
                 - $PRIVATE_IP
                 - >-
                   /g"
-                  /usr/lib/wso2/wso2am-analytics/2.1.0/wso2am-analytics-2.1.0/conf/worker/deployment.yaml
-            - /usr/lib/wso2/wso2am-analytics/2.1.0/wso2am-analytics-2.1.0/bin/worker.sh start
+                  /usr/lib/wso2/wso2am-analytics/2.6.0/wso2am-analytics-2.6.0/conf/worker/deployment.yaml
+            - /usr/lib/wso2/wso2am-analytics/2.6.0/wso2am-analytics-2.6.0/bin/worker.sh start
             - echo 'export HISTTIMEFORMAT="%F %T "' >> /etc/profile.d/history.sh
             - cat /dev/null > ~/.bash_history && history -c
     DependsOn:
       - WSO2APIMSecurityGroup
-      - WSO2APIMAnalyticsLoadBalancer
       - WSO2APIMVPCInternetGatewayAttachment
       - PuppetMaster
   WSO2APIMAnalyticsNode1AutoScalingGroup:
@@ -817,16 +836,16 @@ Resources:
       DesiredCapacity: 1
       MinSize: 1
       MaxSize: 1
-      TargetGroupARNs:
-        - !Ref WSO2APIMAnalyticsALBTargetGroup
       VPCZoneIdentifier:
         - !Ref WSO2APIMPrivateSubnet1
       Tags:
         - Key: Name
           Value: WSO2APIMAnalyticsInstance1
           PropagateAtLaunch: 'true'
+        - Key: cluster
+          Value: apim
+          PropagateAtLaunch: 'true'
     DependsOn:
-      - WSO2APIMAnalyticsLoadBalancer
       - WSO2APIMAnalyticsNode1LaunchConfiguration
   WSO2APIMLoadBalancerSecurityGroup:
     Type: 'AWS::EC2::SecurityGroup'
@@ -938,108 +957,6 @@ Resources:
       SslPolicy: ELBSecurityPolicy-TLS-1-1-2017-01
     DependsOn:
       - WSO2APIMLoadBalancerSecurityGroup
-  WSO2APIMAnalyticsLoadBalancerSecurityGroup:
-    Type: 'AWS::EC2::SecurityGroup'
-    Properties:
-      VpcId: !Ref WSO2APIMVPC
-      GroupDescription: WSO2 APIM Analytics ELB Security Group
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: '9763'
-          ToPort: '9763'
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: '443'
-          ToPort: '443'
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: '9444'
-          ToPort: '9444'
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: '80'
-          ToPort: '80'
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: '4040'
-          ToPort: '4040'
-          CidrIp: 0.0.0.0/0
-      SecurityGroupEgress:
-        - IpProtocol: tcp
-          FromPort: '9763'
-          ToPort: '9763'
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: '9444'
-          ToPort: '9444'
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: '443'
-          ToPort: '443'
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: '80'
-          ToPort: '80'
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: '4040'
-          ToPort: '4040'
-          CidrIp: 0.0.0.0/0
-  WSO2APIMAnalyticsLoadBalancer:
-    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
-    Properties:
-      Name: APIM-Analytics
-      Scheme: internet-facing
-      Subnets:
-        - !Ref WSO2APIMPublicSubnet1
-        - !Ref WSO2APIMPublicSubnet2
-      SecurityGroups:
-        - !Ref WSO2APIMAnalyticsSecurityGroup
-  WSO2APIMAnalyticsALBTargetGroup:
-    Type: AWS::ElasticLoadBalancingV2::TargetGroup
-    Properties:
-      HealthCheckIntervalSeconds: 10
-      HealthCheckProtocol: HTTPS
-      HealthCheckTimeoutSeconds: 5
-      HealthyThresholdCount: 4
-      HealthCheckPath: /carbon/admin/login.jsp
-      HealthCheckPort: 9443
-      Matcher:
-        HttpCode: 200
-      Name: apim-analytics-carbon-9443
-      Port: 9443
-      Protocol: HTTPS
-      TargetGroupAttributes:
-      - Key: deregistration_delay.timeout_seconds
-        Value: '20'
-      - Key: stickiness.enabled
-        Value: 'true'
-      UnhealthyThresholdCount: 3
-      VpcId:
-        Ref: WSO2APIMVPC
-      Tags:
-      - Key: Name
-        Value: apim-analytics
-  WSO2APIMAnalyticsALBListener:
-    Type: AWS::ElasticLoadBalancingV2::Listener
-    Properties:
-      DefaultActions:
-        - Type: forward
-          TargetGroupArn: !Ref WSO2APIMAnalyticsALBTargetGroup
-      Certificates:
-        - CertificateArn: !Join
-          - ''
-          - - 'arn:aws:iam::'
-            - !Ref 'AWS::AccountId'
-            - ':server-certificate'
-            - /
-            - !Ref CertificateName
-      LoadBalancerArn: !Ref WSO2APIMAnalyticsLoadBalancer
-      Port: 443
-      Protocol: HTTPS
-      SslPolicy: ELBSecurityPolicy-TLS-1-1-2017-01
-    DependsOn:
-      - WSO2APIMAnalyticsLoadBalancerSecurityGroup
 Outputs:
   APIMServiceCarbonURL:
     Value: !Join
@@ -1091,8 +1008,6 @@ Parameters:
     Type: String
   AWSAccessKeySecret:
     Type: String
-  AMIId:
-    Type: String
   KeyPairName:
     Description: >-
       The private key used to log in to instances through SSH
@@ -1120,15 +1035,15 @@ Parameters:
     Default: "echo"
   JDKVersion:
     Type: String
-    Default: "Open_JDK_8"
+    Default: "OPEN_JDK8"
     AllowedValues:
-      - "Open_JDK_8"
-      - "Oracle_JDK_8"
+      - "OPEN_JDK8"
+      - "ORACLE_JDK8"
   ProductVersion:
     Type: String
-    Default: 2.1.0
+    Default: 2.6.0
     AllowedValues:
-      - 2.1.0
+      - 2.6.0
   WUMPassword:
     Type: String
     Default: ""
@@ -1148,7 +1063,12 @@ Parameters:
     Description: Provide storage size in Gigabytes
     Type: Number
     Default: 20
-  DBClass:
+  OperatingSystem:
+    Type: String
+    Default: Ubuntu1804
+    AllowedValues:
+     - Ubuntu1804
+  DBInstanceType:
     Type: String
     Default: db.t2.medium
     AllowedValues:
@@ -1161,9 +1081,37 @@ Parameters:
       - db.m3.xlarge
       - db.m3.2xlarge
       - db.m4.large
-  DBEngine:
+  DB:
     Type: String
-    Default: ""
-  DBEngineVersion:
-    Type: String
-    Default: 5.7.22
+    Default: MySQL-5.7
+    AllowedValues:
+      - MySQL-5.6
+      - MySQL-5.7
+
+Mappings:
+  WSO2PuppetMasterRegionMap:
+    ap-southeast-2:
+       Ubuntu1804: ami-040c9bb86678a1957
+    eu-west-1:
+       Ubuntu1804: ami-0cdc3cf1fccfd7446
+    us-east-1:
+       Ubuntu1804: ami-0d1fd76b39f5e5ae7
+    us-east-2:
+       Ubuntu1804: ami-0833e3280aa128cca
+    us-west-1:
+       Ubuntu1804: ami-0c478836da85e958f
+    us-west-2:
+       Ubuntu1804: ami-0d55b60caa4b3ac7c
+  WSO2APIMAMIRegionMap:
+    ap-southeast-2:
+      Ubuntu1804: ami-07a3bd4944eb120a0
+    eu-west-1:
+      Ubuntu1804: ami-00035f41c82244dab
+    us-east-1:
+      Ubuntu1804: ami-0ac019f4fcb7cb7e6
+    us-east-2:
+      Ubuntu1804: ami-0f65671a86f061fcd
+    us-west-1:
+      Ubuntu1804: ami-063aa838bd7631e0b
+    us-west-2:
+      Ubuntu1804: ami-0bbe6b35405ecebdb
