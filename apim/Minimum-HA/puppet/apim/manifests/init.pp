@@ -16,15 +16,6 @@
 
 class apim inherits apim::params {
 
-  if $jdk_version == 'Oracle_JDK_8' {
-    $jdk_type = "jdk-8u144-linux-x64.tar.gz"
-    $jdk_path = "jdk1.8.0_144"
-  }
-  elsif $jdk_version == 'Open_JDK_8' {
-    $jdk_type = "jdk-8u192-ea-bin-b02-linux-x64-19_jul_2018.tar.gz"
-    $jdk_path = "jdk1.8.0_192"
-  }
-
   # Create wso2 group
   group { $user_group:
     ensure => present,
