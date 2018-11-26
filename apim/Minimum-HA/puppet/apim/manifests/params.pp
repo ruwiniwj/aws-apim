@@ -131,6 +131,6 @@ class apim::params {
 
   # ------ Axis2.xml config params -----
   $clustering               = {
-    enabled => true,
+    enabled => false,
   }
 }
