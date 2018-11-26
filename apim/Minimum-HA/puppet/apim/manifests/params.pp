@@ -52,10 +52,10 @@ class apim::params {
   ]
 
   # Configuration Params
-  if $jdk_version == 'Oracle_JDK_8' {
+  if $jdk_version == 'Oracle_JDK8' {
     $jdk_type = "jdk-8u144-linux-x64.tar.gz"
     $jdk_path = "jdk1.8.0_144"
-  } elsif $jdk_version == 'Open_JDK_8' {
+  } elsif $jdk_version == 'Open_JDK8' {
     $jdk_type = "jdk-8u192-ea-bin-b02-linux-x64-19_jul_2018.tar.gz"
     $jdk_path = "jdk1.8.0_192"
   }
@@ -91,22 +91,22 @@ class apim::params {
 
   $wso2_am_db = {
     url               => 'jdbc:mysql://CF_RDS_URL:3306/WSO2AM_APIMGT_DB?autoReconnect=true&amp;useSSL=false',
-    username          => 'wso2carbon',
-    password          => 'wso2carbon',
+    username          => 'CF_DB_USERNAME',
+    password          => 'CF_DB_PASSWORD',
     driver_class_name => 'com.mysql.jdbc.Driver',
   }
 
   $wso2_um_db = {
     url               => 'jdbc:mysql://CF_RDS_URL:3306/WSO2AM_COMMON_DB?autoReconnect=true&amp;useSSL=false',
-    username          => 'wso2carbon',
-    password          => 'wso2carbon',
+    username          => 'CF_DB_USERNAME',
+    password          => 'CF_DB_PASSWORD',
     driver_class_name => 'com.mysql.jdbc.Driver',
   }
 
   $wso2_reg_db = {
     url               => 'jdbc:mysql://CF_RDS_URL:3306/WSO2AM_COMMON_DB?autoReconnect=true&amp;useSSL=false',
-    username          => 'wso2carbon',
-    password          => 'wso2carbon',
+    username          => 'CF_DB_USERNAME',
+    password          => 'CF_DB_PASSWORD',
     driver_class_name => 'com.mysql.jdbc.Driver',
   }
 
@@ -127,5 +127,10 @@ class apim::params {
     location => '${carbon.home}/repository/resources/security/client-truststore.jks',
     type     => 'JKS',
     password => 'wso2carbon'
+  }
+
+  # ------ Axis2.xml config params -----
+  $clustering               = {
+    enabled => true,
   }
 }
