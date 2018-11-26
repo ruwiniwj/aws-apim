@@ -50,10 +50,10 @@ class apim::params {
   ]
 
   # Configuration Params
-  if $jdk_version == 'Oracle_JDK_8' {
+  if $jdk_version == 'ORACLE_JDK8' {
     $jdk_type = "jdk-8u144-linux-x64.tar.gz"
     $jdk_path = "jdk1.8.0_144"
-  } elsif $jdk_version == 'Open_JDK_8' {
+  } elsif $jdk_version == 'OPEN_JDK8' {
     $jdk_type = "jdk-8u192-ea-bin-b02-linux-x64-19_jul_2018.tar.gz"
     $jdk_path = "jdk1.8.0_192"
   }
@@ -100,7 +100,7 @@ class apim::params {
   }
 
   $clustering               = {
-    enabled => true,
+    enabled => false,
   }
 
   # Carbon.xml
