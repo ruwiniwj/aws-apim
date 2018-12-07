@@ -14,7 +14,7 @@
 
 AWSTemplateFormatVersion: 2010-09-09
 Description: >-
-  WSO2 API Manager deployment with WSO2 API Manager Analytics
+  WSO2 API Manager deployment
 Metadata:
   'AWS::CloudFormation::Interface':
     ParameterGroups:
@@ -26,6 +26,7 @@ Metadata:
           - KeyPairName
           - WSO2InstanceType
           - OperatingSystem
+          - ProductVersion
       - Label:
           default: Network Configuration
         Parameters:
@@ -43,7 +44,6 @@ Metadata:
         Parameters:
           - CustomUserData
           - JDK
-          - LogArchiveS3Bucket
           - InternalPrepareForTest
       - Label:
           default: WUM Credentials
@@ -69,8 +69,6 @@ Metadata:
         default: Allocation Storage
       DBInstanceType:
         default: DB Instance Type
-      DB:
-        default: Database
       JDK:
         default: JDK
       InternalPrepareForTest:
@@ -83,9 +81,12 @@ Metadata:
         default: Password
       WSO2InstanceType:
         default: Instance Type
-      LogArchiveS3Bucket:
-        default: Logs location at S3
-
+      DB:
+        default: Database
+      OperatingSystem:
+        default: OS Version
+      ProductVersion:
+        default: APIM Version
 Resources:
   # networking configurations
   WSO2APIMVPC:
@@ -216,7 +217,6 @@ Resources:
       BackupRetentionPeriod: '0'
       DBInstanceIdentifier: WSO2APIMDBInstance
       DBName: WSO2AM_DB
-      EngineVersion: !Ref DBEngineVersion
       EngineVersion: !Select [1, !Split ["-", !Ref DB]]
       Engine: !Select [0, !Split ["-", !Ref DB]]
       MasterUsername: !Ref DBUsername
@@ -246,10 +246,6 @@ Resources:
     Type: 'AWS::EFS::FileSystem'
     Properties:
       PerformanceMode: generalPurpose
-  WSO2APIMAnalyticsEFSFileSystem:
-    Type: 'AWS::EFS::FileSystem'
-    Properties:
-      PerformanceMode: generalPurpose
   WSO2APIMPrivateSubnet1EFSMountTarget:
     Type: 'AWS::EFS::MountTarget'
     Properties:
@@ -262,13 +258,6 @@ Resources:
     Properties:
       SubnetId: !Ref WSO2APIMPrivateSubnet2
       FileSystemId: !Ref WSO2APIMEFSFileSystem
-      SecurityGroups:
-        - !Ref WSO2APIMEFSSecurityGroup
-  WSO2APIMAnalyticsPrivateSubnet1EFSMountTarget:
-    Type: 'AWS::EFS::MountTarget'
-    Properties:
-      SubnetId: !Ref WSO2APIMPrivateSubnet1
-      FileSystemId: !Ref WSO2APIMAnalyticsEFSFileSystem
       SecurityGroups:
         - !Ref WSO2APIMEFSSecurityGroup
   # Product configurations
@@ -376,24 +365,27 @@ Resources:
             - echo "127.0.0.1 $(hostname)" >> /etc/hosts
             - sed -i '/\[main\]/a dns_alt_names=puppetmaster,puppet' /etc/puppet/puppet.conf
             - sed -i '/\[master\]/a autosign=true' /etc/puppet/puppet.conf
+            - !Join
+              - ''
+              - - export ProductVersion=
+                - !Ref ProductVersion
             - service puppetmaster restart
-            - !Sub "./home/ubuntu/apim-init.sh ${WUMUsername} ${WUMPassword}"
-            - !Sub "./home/ubuntu/apim-analytics-init.sh ${WUMUsername} ${WUMPassword}"
+            - !Sub "./home/ubuntu/wso2-init.sh ${WUMUsername} ${WUMPassword} wso2am-${ProductVersion} ${InternalPrepareForTest}"
             - !Join
               - ''
               - - sed -i "s/access-key/
                 - !Ref AWSAccessKeyId
-                - /g" /etc/puppet/code/environments/production/modules/apim/manifests/params.pp
+                - /g" /etc/puppet/code/environments/production/modules/apim${ProductVersion//.}/manifests/params.pp
             - !Join
               - ''
               - - sed -i "s/REGION_NAME/
                 - !Ref "AWS::Region"
-                - /g" /etc/puppet/code/environments/production/modules/apim/manifests/params.pp
+                - /g" /etc/puppet/code/environments/production/modules/apim${ProductVersion//.}/manifests/params.pp
             - !Join
               - ''
               - - sed -i "s^secretkey^
                 - !Ref AWSAccessKeySecret
-                - ^g" /etc/puppet/code/environments/production/modules/apim/manifests/params.pp
+                - ^g" /etc/puppet/code/environments/production/modules/apim${ProductVersion//.}/manifests/params.pp
             - !Join
               - ''
               - - sed -i "s/CF_ELB_DNS_NAME/
@@ -402,41 +394,24 @@ Resources:
                   - DNSName
                 - >-
                   /g"
-                  /etc/puppet/code/environments/production/modules/apim/manifests/params.pp
+                  /etc/puppet/code/environments/production/modules/apim${ProductVersion//.}/manifests/params.pp
             - !Join
               - ''
               - - sed -i "s/CF_DB_USERNAME/
                 - !Ref DBUsername
-                - /g" /etc/puppet/code/environments/production/modules/apim/manifests/params.pp
+                - /g" /etc/puppet/code/environments/production/modules/apim${ProductVersion//.}/manifests/params.pp
             - !Join
               - ''
               - - sed -i "s/CF_DB_PASSWORD/
                 - !Ref DBPassword
-                - /g" /etc/puppet/code/environments/production/modules/apim/manifests/params.pp
+                - /g" /etc/puppet/code/environments/production/modules/apim${ProductVersion//.}/manifests/params.pp
             - !Join
               - ''
               - - sed -i "s/CF_RDS_URL/
                 - !GetAtt
                   - WSO2APIMDBInstance
                   - Endpoint.Address
-                - /g" /etc/puppet/code/environments/production/modules/apim/manifests/params.pp
-            - !Join
-              - ''
-              - - sed -i "s/CF_RDS_URL/
-                - !GetAtt
-                  - WSO2APIMDBInstance
-                  - Endpoint.Address
-                - /g" /etc/puppet/code/environments/production/modules/apim_analytics_worker/manifests/params.pp
-            - !Join
-              - ''
-              - - sed -i "s/CF_DB_USERNAME/
-                - !Ref DBUsername
-                - /g" /etc/puppet/code/environments/production/modules/apim_analytics_worker/manifests/params.pp
-            - !Join
-              - ''
-              - - sed -i "s/CF_DB_PASSWORD/
-                - !Ref DBPassword
-                - /g" /etc/puppet/code/environments/production/modules/apim_analytics_worker/manifests/params.pp
+                - /g" /etc/puppet/code/environments/production/modules/apim${ProductVersion//.}/manifests/params.pp
             - export DB_NAME=WSO2AM_DB
             - !Join
               - ''
@@ -461,13 +436,8 @@ Resources:
             - !Join
              - ''
              - - sed -i "s/JDK_TYPE/
-               - !Ref JDKVersion
-               - /g" /etc/puppet/code/environments/production/modules/apim/manifests/params.pp
-            - !Join
-             - ''
-             - - sed -i "s/JDK_TYPE/
-               - !Ref JDKVersion
-               - /g" /etc/puppet/code/environments/production/modules/apim_analytics_worker/manifests/params.pp
+               - !Ref JDK
+               - /g" /etc/puppet/code/environments/production/modules/apim${ProductVersion//.}/manifests/params.pp
             - !Join
               - ''
               - - sed -i "s/CF_DB_USERNAME/
@@ -525,72 +495,61 @@ Resources:
       SecurityGroups:
         - !Ref WSO2APIMSecurityGroup
       UserData: !Base64
-        'Fn::Join':
-          - |+
-
-          - - '#!/bin/bash'
-            - 'export PATH=~/.local/bin:$PATH'
-            - apt-get update
-            - apt-get install -y puppet
-            - apt-get install -y nfs-common
-            - sed -i '/\[main\]/a server=puppet' /etc/puppet/puppet.conf
-            - !Join
-              - ''
-              - - export PuppetmasterIP=
-                - !GetAtt
-                  - PuppetMaster
-                  - PrivateIp
-            - echo "${PuppetmasterIP} puppet puppetmaster" >> /etc/hosts
-            - service puppet restart
-            - mkdir -p /mnt/efs
-            - !Sub "mount -t nfs4 -o nfsvers=4.1 ${WSO2APIMEFSFileSystem}.efs.${AWS::Region}.amazonaws.com:/ /mnt/efs"
-            - sleep 180
-            - export FACTER_profile=apim
-            - puppet agent -vt
-            - 'if [ ! -d "/mnt/efs/deployment/server" ]; then'
-            - '    mkdir -p /mnt/efs/deployment/server'
-            - '    cp -r /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/deployment/server /mnt/efs/deployment'
-            - fi
-            - >-
-              rm -rf
-              /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/deployment/server
-            - >-
-              ln -s /mnt/efs/deployment/server
-              /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/deployment/server
-            - 'if [ ! -d "/mnt/efs/tenants" ]; then'
-            - '    mkdir -p /mnt/efs/tenants'
-            - '    cp -r /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/tenants /mnt/efs'
-            - fi
-            - >-
-              rm -rf
-              /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/tenants
-            - >-
-              ln -s /mnt/efs/tenants
-              /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/tenants
-            - apt-get install -y python3-pip
-            - pip3 install boto3
-            - echo "${WSO2APIMEFSFileSystem}:/ /mnt/efs efs defaults,_netdev 0 0" >> /etc/fstab
-            - !Sub "PRIVATE_IP=$(python3 /usr/local/bin/private_ip_extractor.py ${AWS::Region} ${AWSAccessKeyId} ${AWSAccessKeySecret} WSO2APIMInstance1)"
-            - !Sub "ANALYTICS_PRIVATE_IP=$(python3 /usr/local/bin/private_ip_extractor.py ${AWS::Region} ${AWSAccessKeyId} ${AWSAccessKeySecret} WSO2APIMAnalyticsInstance1)"
-            - !Join
-              - ''
-              - - sed -i "s/LOCAL-MEMBER-HOST/
-                - $PRIVATE_IP
-                - >-
-                  /g"
-                  /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/conf/axis2/axis2.xml
-            - !Join
-              - ''
-              - - sed -i "s/CF_ANALYTICS_IP/
-                - $ANALYTICS_PRIVATE_IP
-                - >-
-                  /g"
-                  /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/conf/api-manager.xml
-            - /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/bin/wso2server.sh start
-            - echo 'export HISTTIMEFORMAT="%F %T "' >> /etc/profile.d/history.sh
-            - cat /dev/null > ~/.bash_history && history -c
+        'Fn::Sub': |
+          #cloud-boothook
+          #!/bin/bash
+          export PATH=~/.local/bin:$PATH
+          apt-get update
+          apt install -y python-pip
+          pip install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz
+          apt-get install -y puppet
+          apt-get install -y nfs-common
+          sed -i '/\[main\]/a server=puppet' /etc/puppet/puppet.conf
+          export ProductVersion=2.6.0
+          sed -i "s/Product_Version/2.6.0/g" /home/ubuntu/logstash-6.5.1/logstash-APIM.conf
+          sed -i "s^secret-key^${AWSAccessKeySecret}^g" /home/ubuntu/logstash-6.5.1/logstash-APIM.conf
+          sed -i "s/access-key/${AWSAccessKeyId}/g" /home/ubuntu/logstash-6.5.1/logstash-APIM.conf
+          sed -i "s^ELASTICSEARCH_ENDPOINT^${ElasticSearchEndpoint}^g" /home/ubuntu/logstash-6.5.1/logstash-APIM.conf
+          export INSTANCEID=$(ec2metadata | grep -m 1 'instance-id:' | awk '{print $2}')
+          sed -i "s/INSTANCE_ID/$INSTANCEID/g" /home/ubuntu/logstash-6.5.1/logstash-APIM.conf
+          sed -i "s/STACK_NAME/${AWS::StackName}/g" /home/ubuntu/logstash-6.5.1/logstash-APIM.conf
+          sed -i "s/REGION_NAME/${AWS::Region}/g" /home/ubuntu/logstash-6.5.1/logstash-APIM.conf
+          nohup /home/ubuntu/logstash-6.5.1/bin/logstash -f /home/ubuntu/logstash-6.5.1/logstash-APIM.conf &
+          export PuppetmasterIP=${PuppetMaster.PrivateIp}
+          echo "$PuppetmasterIP puppet puppetmaster" >> /etc/hosts
+          service puppet restart
+          mkdir -p /mnt/efs
+          mount -t nfs4 -o nfsvers=4.1 ${WSO2APIMEFSFileSystem}.efs.${AWS::Region}.amazonaws.com:/ /mnt/efs
+          sleep 180
+          export FACTER_profile=apim260
+          puppet agent -vt
+          sleep 10
+          if [ ! -d "/mnt/efs/server" ]; then
+              mkdir -p /mnt/efs/server
+              cp -r /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/deployment/server /mnt/efs
+          fi
+          rm -rf  /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/deployment/server
+          ln -s /mnt/efs/server /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/deployment/server
+          if [ ! -d "/mnt/efs/tenants" ]; then
+              mkdir -p /mnt/efs/tenants
+              cp -r /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/tenants /mnt/efs
+          fi
+          rm -rf /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/tenants
+          ln -s /mnt/efs/tenants /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/tenants
+          echo "${WSO2APIMEFSFileSystem}:/ /mnt/efs efs defaults,_netdev 0 0" >> /etc/fstab
+          /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/bin/wso2server.sh start
+          ${CustomUserData}
+          echo 'export HISTTIMEFORMAT="%F %T "' >> /etc/profile.d/history.sh
+          cat /dev/null > ~/.bash_history && history -c
+          end=$((SECONDS+600))
+          while [ $SECONDS -lt $end ] ; do
+              wget --delete-after --server-response --no-check-certificate "https://localhost:9443/carbon/admin/login.jsp"
+              if [ $? -eq "0" ] ; then
+                  /usr/local/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource WSO2APIMNode1AutoScalingGroup --region ${AWS::Region}
+                  break
+              fi
+          done
     DependsOn:
-      - WSO2APIMAnalyticsNode1AutoScalingGroup
       - WSO2APIMSecurityGroup
       - WSO2APIMLoadBalancer
       - WSO2APIMVPCInternetGatewayAttachment
@@ -613,9 +572,20 @@ Resources:
         - Key: cluster
           Value: apim
           PropagateAtLaunch: 'true'
+    CreationPolicy:
+      ResourceSignal:
+        Count: 1
+        Timeout: PT20M
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MaxBatchSize: '2'
+        MinInstancesInService: '1'
+        PauseTime: PT10M
+        SuspendProcesses:
+          - AlarmNotification
+        WaitOnResourceSignals: true
     DependsOn:
       - WSO2APIMLoadBalancer
-      - WSO2APIMNode1LaunchConfiguration
   WSO2APIMNode2LaunchConfiguration:
     Type: 'AWS::AutoScaling::LaunchConfiguration'
     Properties:
@@ -634,72 +604,61 @@ Resources:
       SecurityGroups:
         - !Ref WSO2APIMSecurityGroup
       UserData: !Base64
-        'Fn::Join':
-          - |+
-
-          - - '#!/bin/bash'
-            - 'export PATH=~/.local/bin:$PATH'
-            - apt-get update
-            - apt-get install -y puppet
-            - apt-get install -y nfs-common
-            - sed -i '/\[main\]/a server=puppet' /etc/puppet/puppet.conf
-            - !Join
-              - ''
-              - - export PuppetmasterIP=
-                - !GetAtt
-                  - PuppetMaster
-                  - PrivateIp
-            - echo "${PuppetmasterIP} puppet puppetmaster" >> /etc/hosts
-            - service puppet restart
-            - mkdir -p /mnt/efs
-            - !Sub "mount -t nfs4 -o nfsvers=4.1 ${WSO2APIMEFSFileSystem}.efs.${AWS::Region}.amazonaws.com:/ /mnt/efs"
-            - sleep 200
-            - export FACTER_profile=apim
-            - puppet agent -vt
-            - 'if [ ! -d "/mnt/efs/deployment/server" ]; then'
-            - '    mkdir -p /mnt/efs/deployment/server'
-            - '    cp -r /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/deployment/server /mnt/efs/deployment'
-            - fi
-            - >-
-              rm -rf
-              /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/deployment/server
-            - >-
-              ln -s /mnt/efs/deployment/server
-              /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/deployment/server
-            - 'if [ ! -d "/mnt/efs/tenants" ]; then'
-            - '    mkdir -p /mnt/efs/tenants'
-            - '    cp -r /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/tenants /mnt/efs'
-            - fi
-            - >-
-              rm -rf
-              /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/tenants
-            - >-
-              ln -s /mnt/efs/tenants
-              /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/tenants
-            - apt-get install -y python3-pip
-            - pip3 install boto3
-            - echo "${WSO2APIMEFSFileSystem}:/ /mnt/efs efs defaults,_netdev 0 0" >> /etc/fstab
-            - !Sub "PRIVATE_IP=$(python3 /usr/local/bin/private_ip_extractor.py ${AWS::Region} ${AWSAccessKeyId} ${AWSAccessKeySecret} WSO2APIMInstance1)"
-            - !Sub "ANALYTICS_PRIVATE_IP=$(python3 /usr/local/bin/private_ip_extractor.py ${AWS::Region} ${AWSAccessKeyId} ${AWSAccessKeySecret} WSO2APIMAnalyticsInstance1)"
-            - !Join
-              - ''
-              - - sed -i "s/LOCAL-MEMBER-HOST/
-                - $PRIVATE_IP
-                - >-
-                  /g"
-                  /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/conf/axis2/axis2.xml
-            - !Join
-              - ''
-              - - sed -i "s/CF_ANALYTICS_IP/
-                - $ANALYTICS_PRIVATE_IP
-                - >-
-                  /g"
-                  /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/conf/api-manager.xml
-            - /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/bin/wso2server.sh start
-            - echo 'export HISTTIMEFORMAT="%F %T "' >> /etc/profile.d/history.sh
-            - cat /dev/null > ~/.bash_history && history -c
+        'Fn::Sub': |
+          #cloud-boothook
+          #!/bin/bash
+          export PATH=~/.local/bin:$PATH
+          apt-get update
+          apt install -y python-pip
+          pip install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz
+          apt-get install -y puppet
+          apt-get install -y nfs-common
+          sed -i '/\[main\]/a server=puppet' /etc/puppet/puppet.conf
+          export ProductVersion=2.6.0
+          sed -i "s/Product_Version/2.6.0/g" /home/ubuntu/logstash-6.5.1/logstash-APIM.conf
+          sed -i "s^secret-key^${AWSAccessKeySecret}^g" /home/ubuntu/logstash-6.5.1/logstash-APIM.conf
+          sed -i "s/access-key/${AWSAccessKeyId}/g" /home/ubuntu/logstash-6.5.1/logstash-APIM.conf
+          sed -i "s^ELASTICSEARCH_ENDPOINT^${ElasticSearchEndpoint}^g" /home/ubuntu/logstash-6.5.1/logstash-APIM.conf
+          export INSTANCEID=$(ec2metadata | grep -m 1 'instance-id:' | awk '{print $2}')
+          sed -i "s/INSTANCE_ID/$INSTANCEID/g" /home/ubuntu/logstash-6.5.1/logstash-APIM.conf
+          sed -i "s/STACK_NAME/${AWS::StackName}/g" /home/ubuntu/logstash-6.5.1/logstash-APIM.conf
+          sed -i "s/REGION_NAME/${AWS::Region}/g" /home/ubuntu/logstash-6.5.1/logstash-APIM.conf
+          nohup /home/ubuntu/logstash-6.5.1/bin/logstash -f /home/ubuntu/logstash-6.5.1/logstash-APIM.conf &
+          export PuppetmasterIP=${PuppetMaster.PrivateIp}
+          echo "$PuppetmasterIP puppet puppetmaster" >> /etc/hosts
+          service puppet restart
+          mkdir -p /mnt/efs
+          mount -t nfs4 -o nfsvers=4.1 ${WSO2APIMEFSFileSystem}.efs.${AWS::Region}.amazonaws.com:/ /mnt/efs
+          sleep 300
+          export FACTER_profile=apim260
+          puppet agent -vt
+          sleep 10
+          if [ ! -d "/mnt/efs/server" ]; then
+              mkdir -p /mnt/efs/server
+              cp -r /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/deployment/server /mnt/efs
+          fi
+          rm -rf  /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/deployment/server
+          ln -s /mnt/efs/server /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/deployment/server
+          if [ ! -d "/mnt/efs/tenants" ]; then
+              mkdir -p /mnt/efs/tenants
+              cp -r /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/tenants /mnt/efs
+          fi
+          rm -rf /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/tenants
+          ln -s /mnt/efs/tenants /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/tenants
+          echo "${WSO2APIMEFSFileSystem}:/ /mnt/efs efs defaults,_netdev 0 0" >> /etc/fstab
+          /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/bin/wso2server.sh start
+          ${CustomUserData}
+          echo 'export HISTTIMEFORMAT="%F %T "' >> /etc/profile.d/history.sh
+          cat /dev/null > ~/.bash_history && history -c
+          end=$((SECONDS+600))
+          while [ $SECONDS -lt $end ] ; do
+              wget --delete-after --server-response --no-check-certificate "https://localhost:9443/carbon/admin/login.jsp"
+              if [ $? -eq "0" ] ; then
+                  /usr/local/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource WSO2APIMNode2AutoScalingGroup --region ${AWS::Region}
+                  break
+              fi
+          done
     DependsOn:
-      - WSO2APIMAnalyticsNode1AutoScalingGroup
       - WSO2APIMSecurityGroup
       - WSO2APIMLoadBalancer
       - WSO2APIMVPCInternetGatewayAttachment
@@ -719,134 +678,20 @@ Resources:
         - Key: Name
           Value: WSO2APIMInstance2
           PropagateAtLaunch: 'true'
+    CreationPolicy:
+      ResourceSignal:
+        Count: 1
+        Timeout: PT20M
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MaxBatchSize: '2'
+        MinInstancesInService: '1'
+        PauseTime: PT10M
+        SuspendProcesses:
+          - AlarmNotification
+        WaitOnResourceSignals: true
     DependsOn:
       - WSO2APIMLoadBalancer
-      - WSO2APIMNode2LaunchConfiguration
-  WSO2APIMAnalyticsSecurityGroup:
-    Type: 'AWS::EC2::SecurityGroup'
-    Properties:
-      VpcId: !Ref WSO2APIMVPC
-      GroupDescription: WSO2 API Manager Analytics Security Group
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 22
-          ToPort: 22
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: '4040'
-          ToPort: '4040'
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: '9091'
-          ToPort: '9091'
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: '9764'
-          ToPort: '9764'
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: '9713'
-          ToPort: '9713'
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: '9613'
-          ToPort: '9613'
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: '7071'
-          ToPort: '7071'
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: '7444'
-          ToPort: '7444'
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: '9444'
-          ToPort: '9444'
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: '9711'
-          ToPort: '9711'
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: '7612'
-          ToPort: '7612'
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: '7712'
-          ToPort: '7712'
-          CidrIp: 0.0.0.0/0
-  WSO2APIMAnalyticsNode1LaunchConfiguration:
-    Type: 'AWS::AutoScaling::LaunchConfiguration'
-    Properties:
-      ImageId: !FindInMap
-        - WSO2APIMAMIRegionMap
-        - !Ref 'AWS::Region'
-        - Ubuntu1804
-      InstanceType: !Ref WSO2InstanceType
-      BlockDeviceMappings:
-        - DeviceName: /dev/sda1
-          Ebs:
-            VolumeSize: '20'
-            VolumeType: gp2
-            DeleteOnTermination: 'true'
-      KeyName: !Ref KeyPairName
-      SecurityGroups:
-        - !Ref WSO2APIMAnalyticsSecurityGroup
-      UserData: !Base64
-        'Fn::Join':
-          - |+
-
-          - - '#!/bin/bash'
-            - 'export PATH=~/.local/bin:$PATH'
-            - apt-get update
-            - apt-get install -y puppet
-            - sed -i '/\[main\]/a server=puppet' /etc/puppet/puppet.conf
-            - !Join
-              - ''
-              - - export PuppetmasterIP=
-                - !GetAtt
-                  - PuppetMaster
-                  - PrivateIp
-            - echo "${PuppetmasterIP} puppet puppetmaster" >> /etc/hosts
-            - sleep 180
-            - export FACTER_profile=apim_analytics_worker
-            - puppet agent -vt
-            - apt-get install -y python3-pip
-            - pip3 install boto3
-            - !Sub "PRIVATE_IP=$(python3 /usr/local/bin/private_ip_extractor.py ${AWS::Region} ${AWSAccessKeyId} ${AWSAccessKeySecret} WSO2APIMAnalyticsInstance1)"
-            - !Join
-              - ''
-              - - sed -i "s/ANALYTICS_IP/
-                - $PRIVATE_IP
-                - >-
-                  /g"
-                  /usr/lib/wso2/wso2am-analytics/2.6.0/wso2am-analytics-2.6.0/conf/worker/deployment.yaml
-            - /usr/lib/wso2/wso2am-analytics/2.6.0/wso2am-analytics-2.6.0/bin/worker.sh start
-            - echo 'export HISTTIMEFORMAT="%F %T "' >> /etc/profile.d/history.sh
-            - cat /dev/null > ~/.bash_history && history -c
-    DependsOn:
-      - WSO2APIMSecurityGroup
-      - WSO2APIMVPCInternetGatewayAttachment
-      - PuppetMaster
-  WSO2APIMAnalyticsNode1AutoScalingGroup:
-    Type: 'AWS::AutoScaling::AutoScalingGroup'
-    Properties:
-      LaunchConfigurationName: !Ref WSO2APIMAnalyticsNode1LaunchConfiguration
-      DesiredCapacity: 1
-      MinSize: 1
-      MaxSize: 1
-      VPCZoneIdentifier:
-        - !Ref WSO2APIMPrivateSubnet1
-      Tags:
-        - Key: Name
-          Value: WSO2APIMAnalyticsInstance1
-          PropagateAtLaunch: 'true'
-        - Key: cluster
-          Value: apim
-          PropagateAtLaunch: 'true'
-    DependsOn:
-      - WSO2APIMAnalyticsNode1LaunchConfiguration
   WSO2APIMLoadBalancerSecurityGroup:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
@@ -975,7 +820,7 @@ Outputs:
           - WSO2APIMLoadBalancer
           - DNSName
         - '/carbon'
-    Description: APIM service carbon URL    
+    Description: APIM service carbon URL
   PublisherUrl:
     Value: !Join
       - ''
@@ -1011,7 +856,7 @@ Outputs:
           - WSO2APIMLoadBalancer
           - DNSName
         - '/services'
-    Description: APIM keymanager service admin URL  
+    Description: APIM keymanager service admin URL
   GatewayHttpsUrl:
     Value: !Join
       - ''
@@ -1060,7 +905,7 @@ Parameters:
   CustomUserData:
     Type: String
     Default: "echo"
-  JDKVersion:
+  JDK:
     Type: String
     Default: "OPEN_JDK8"
     AllowedValues:
@@ -1071,6 +916,7 @@ Parameters:
     Default: 2.6.0
     AllowedValues:
       - 2.6.0
+      - 2.1.0
   WUMPassword:
     Type: String
     Default: ""
@@ -1090,6 +936,9 @@ Parameters:
     Description: Provide storage size in Gigabytes
     Type: Number
     Default: 20
+  ElasticSearchEndpoint:
+    Type: String
+    Default: ""
   OperatingSystem:
     Type: String
     Default: Ubuntu1804
@@ -1114,31 +963,36 @@ Parameters:
     AllowedValues:
       - MySQL-5.6
       - MySQL-5.7
-
+  InternalPrepareForTest:
+    Type: String
+    Default: "False"
+    AllowedValues:
+      - "False"
+      - "True"
 Mappings:
   WSO2PuppetMasterRegionMap:
     ap-southeast-2:
-       Ubuntu1804: ami-0e4404d1deb7c95bd
+       Ubuntu1804: ami-00c57efacaf38bc89
     eu-west-1:
-       Ubuntu1804: ami-00336f3b7ea4eefa0
+       Ubuntu1804: ami-09f8997bf07a3dab6
     us-east-1:
-       Ubuntu1804: ami-0b37bc88799df611f
+       Ubuntu1804: ami-089b509d6b7582098
     us-east-2:
-       Ubuntu1804: ami-0469c245911beedb3
+       Ubuntu1804: ami-0d8dd3689445a7803
     us-west-1:
-       Ubuntu1804: ami-0285bca90ab4146d7
+       Ubuntu1804: ami-0fd6b8dc748d89f33
     us-west-2:
-       Ubuntu1804: ami-0e5dc5effb37f1a32
+       Ubuntu1804: ami-037e030b34acd50a4
   WSO2APIMAMIRegionMap:
     ap-southeast-2:
-      Ubuntu1804: ami-07a3bd4944eb120a0
+      Ubuntu1804: ami-05b0cd92df53d8b01
     eu-west-1:
-      Ubuntu1804: ami-00035f41c82244dab
+      Ubuntu1804: ami-001b442605bc38872
     us-east-1:
-      Ubuntu1804: ami-0ac019f4fcb7cb7e6
+      Ubuntu1804: ami-0305eacef0574b5fc
     us-east-2:
-      Ubuntu1804: ami-0f65671a86f061fcd
+      Ubuntu1804: ami-020cace0c1a31a53c
     us-west-1:
-      Ubuntu1804: ami-063aa838bd7631e0b
+      Ubuntu1804: ami-0f8b13ab717f3c2a9
     us-west-2:
-      Ubuntu1804: ami-0bbe6b35405ecebdb
+      Ubuntu1804: ami-09a8480d42833b320
