@@ -16,34 +16,8 @@
 
 # Class: apim
 # Init class of API Manager default profile
-class apim (
-  $user                  = $apim::params::user,
-  $user_id               = $apim::params::user_id,
-  $user_group            = $apim::params::user_group,
-  $user_group_id         = $apim::params::user_group_id,
-  $service_name          = $apim::params::service_name,
-  $template_list         = $apim::params::template_list,
-  $start_script_template = $apim::params::start_script_template,
 
-  # api-manager.xml configs
-  $auth_manager          = $apim::params::auth_manager,
-  $api_gateway           = $apim::params::api_gateway,
-  $analytics             = $apim::params::analytics,
-  $api_store             = $apim::params::api_store,
-  $api_publisher         = $apim::params::api_publisher,
-
-  # Master-datasource configs
-  $wso2am_db             = $apim::params::wso2am_db,
-  $wso2am_stat_db        = $apim::params::wso2am_stat_db,
-  $wso2_mb_store_db      = $apim::params::wso2_mb_store_db,
-
-  # carbon.xml configs
-  $ports                 = $apim::params::ports,
-  $key_store             = $apim::params::key_store,
-)
-
-  inherits apim::params {
-
+class apim260 inherits apim260::params{
   # Create wso2 group
   group { $user_group:
     ensure => present,
@@ -136,11 +110,11 @@ class apim (
   }
 
   # Copy mysql connector to the installed directory
-  file { "/usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/components/lib/mysql-connector-java-5.1.41-bin.jar":
+  file { "/usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/components/lib/${db_connector}":
     owner  => $user,
     group  => $user_group,
     mode   => '0754',
-    source => "puppet:///modules/installers/mysql-connector-java-5.1.41-bin.jar",
+    source => "puppet:///modules/installers/${db_connector}",
   }
 
   file { "/usr/local/bin/private_ip_extractor.py":

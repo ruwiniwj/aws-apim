@@ -16,10 +16,10 @@
 
 # Class apim::startserver
 # Starts the server as a service in the final stage.
-class apim::startserver (
+class apim260::startserver (
   $service_name = $apim::params::service_name
 )
-  inherits apim::params {
+  inherits apim260::params {
 
   # service { $service_name:
   #   ensure => running,
