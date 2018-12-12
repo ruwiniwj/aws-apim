@@ -42,8 +42,9 @@
                     <driverClassName><%= @wso2_am_db['driver_class_name'] %></driverClassName>
                     <maxActive>50</maxActive>
                     <maxWait>60000</maxWait>
+                    <minIdle>5</minIdle>
                     <testOnBorrow>true</testOnBorrow>
-                    <validationQuery>SELECT 1</validationQuery>
+                    <validationQuery><%= @wso2_am_db['validation_query'] %></validationQuery>
                     <validationInterval>30000</validationInterval>
                     <defaultAutoCommit>false</defaultAutoCommit>
                 </configuration>
@@ -108,8 +109,9 @@
                     <driverClassName><%= @wso2_um_db['driver_class_name'] %></driverClassName>
                     <maxActive>50</maxActive>
                     <maxWait>60000</maxWait>
+                    <minIdle>5</minIdle>
                     <testOnBorrow>true</testOnBorrow>
-                    <validationQuery>SELECT 1</validationQuery>
+                    <validationQuery><%= @wso2_um_db['validation_query'] %></validationQuery>
                     <validationInterval>30000</validationInterval>
                     <defaultAutoCommit>false</defaultAutoCommit>
                 </configuration>
@@ -130,8 +132,9 @@
                     <driverClassName><%= @wso2_reg_db['driver_class_name'] %></driverClassName>
                     <maxActive>50</maxActive>
                     <maxWait>60000</maxWait>
+                    <minIdle>5</minIdle>
                     <testOnBorrow>true</testOnBorrow>
-                    <validationQuery>SELECT 1</validationQuery>
+                    <validationQuery><%= @wso2_reg_db['validation_query'] %></validationQuery>
                     <validationInterval>30000</validationInterval>
                     <defaultAutoCommit>false</defaultAutoCommit>
                 </configuration>
