@@ -29,7 +29,7 @@ class apim260::params {
   $enable_test_mode = 'ENABLE_TEST_MODE'
   $jdk_version = 'JDK_TYPE'
   $db_managment_system = 'CF_DBMS'
-  $oracle_sid = 'oracle12'
+  $oracle_sid = 'WSO2AMDB'
   $db_password = 'CF_DB_PASSWORD'
   $aws_access_key = 'access-key'
   $aws_secret_key = 'secretkey'
@@ -92,7 +92,7 @@ class apim260::params {
 
   # ----- Master-datasources config params -----
 
-  if $db_managment_system == 'mysql' { # jdbc:mysql://localhost:3306/regdb
+  if $db_managment_system == 'mysql' {
     $reg_db_user_name = 'CF_DB_USERNAME'
     $um_db_user_name = 'CF_DB_USERNAME'
     $am_db_user_name = 'CF_DB_USERNAME'
@@ -102,17 +102,17 @@ class apim260::params {
     $db_driver_class_name = 'com.mysql.jdbc.Driver'
     $db_connector = 'mysql-connector-java-5.1.41-bin.jar'
     $db_validation_query = 'SELECT 1'
-  } elsif $db_managment_system == 'oracle-se' { # jdbc:oracle:thin:@SERVER_NAME:PORT/SID   ****SID
+  } elsif $db_managment_system == 'oracle-se2' {
     $reg_db_user_name = 'WSO2AM_COMMON_DB'
     $um_db_user_name = 'WSO2AM_COMMON_DB'
     $am_db_user_name = 'WSO2AM_APIMGT_DB'
-    $wso2_reg_db_url = "jdbc:orace:thin:@CF_RDS_URL:1521/${oracle_sid}"
+    $wso2_reg_db_url = "jdbc:oracle:thin:@CF_RDS_URL:1521/${oracle_sid}"
     $wso2_um_db_url = "jdbc:oracle:thin:@CF_RDS_URL:1521/${oracle_sid}"
     $wso2_am_db_url = "jdbc:oracle:thin:@CF_RDS_URL:1521/${oracle_sid}"
     $db_driver_class_name = 'oracle.jdbc.OracleDriver'
-    $db_validation_query = 'SELECT 1'
+    $db_validation_query = 'SELECT 1 FROM DUAL'
     $db_connector = 'ojdbc8.jar'
-  } elsif $db_managment_system == 'sqlserver-se' { # jdbc:sqlserver://<IP>:1433;databaseName=wso2greg;SendStringParametersAsUnicode=false
+  } elsif $db_managment_system == 'sqlserver-se' {
     $reg_db_user_name = 'CF_DB_USERNAME'
     $um_db_user_name = 'CF_DB_USERNAME'
     $am_db_user_name = 'CF_DB_USERNAME'
@@ -120,9 +120,9 @@ class apim260::params {
     $wso2_um_db_url = 'jdbc:sqlserver://CF_RDS_URL:1433;databaseName=WSO2AM_COMMON_DB;SendStringParametersAsUnicode=false'
     $wso2_am_db_url = 'jdbc:sqlserver://CF_RDS_URL:1433;databaseName=WSO2AM_APIMGT_DB;SendStringParametersAsUnicode=false'
     $db_driver_class_name = 'com.microsoft.sqlserver.jdbc.SQLServerDriver'
-    $db_connector = 'mssql-jdbc-6.4.0.jre8.jar'
+    $db_connector = 'mssql-jdbc-7.0.0.jre8.jar'
     $db_validation_query = 'SELECT 1'
-  } elsif $db_managment_system == 'postgres' { # jdbc:postgresql://localhost:5432/gregdb
+  } elsif $db_managment_system == 'postgres' {
     $reg_db_user_name = 'CF_DB_USERNAME'
     $um_db_user_name = 'CF_DB_USERNAME'
     $am_db_user_name = 'CF_DB_USERNAME'
