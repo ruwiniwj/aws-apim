@@ -83,8 +83,6 @@ Metadata:
         default: Instance Type
       DB:
         default: Database
-      OperatingSystem:
-        default: OS Version
       ProductVersion:
         default: APIM Version
 Resources:
@@ -229,7 +227,7 @@ Resources:
       BackupRetentionPeriod: '0'
       DBInstanceIdentifier: WSO2APIMDBInstance
       DBName: !If [UseSQLServerDB, "", WSO2AMDB]
-      LicenseModel: !If [UseLicensedVersion, license-included, general-public-license]
+      LicenseModel: !If [UseLicensedVersion, license-included, !Ref 'AWS::NoValue']
       EngineVersion: !Select [1, !Split ["_", !FindInMap [ DBEngineMap, !Ref DB, DBEngine]]]
       Engine: !Select [0, !Split ["_", !FindInMap [ DBEngineMap, !Ref DB, DBEngine]]]
       MasterUsername: !Ref DBUsername
@@ -564,7 +562,7 @@ Resources:
           ${CustomUserData}
           echo 'export HISTTIMEFORMAT="%F %T "' >> /etc/profile.d/history.sh
           cat /dev/null > ~/.bash_history && history -c
-          end=$((SECONDS+600))
+          end=$((SECONDS+900))
           while [ $SECONDS -lt $end ] ; do
               wget --delete-after --server-response --no-check-certificate "https://localhost:9443/carbon/admin/login.jsp"
               if [ $? -eq "0" ] ; then
@@ -674,7 +672,7 @@ Resources:
           ${CustomUserData}
           echo 'export HISTTIMEFORMAT="%F %T "' >> /etc/profile.d/history.sh
           cat /dev/null > ~/.bash_history && history -c
-          end=$((SECONDS+600))
+          end=$((SECONDS+900))
           while [ $SECONDS -lt $end ] ; do
               wget --delete-after --server-response --no-check-certificate "https://localhost:9443/carbon/admin/login.jsp"
               if [ $? -eq "0" ] ; then
@@ -1108,6 +1106,7 @@ Mappings:
     Oracle-SE2-12.1:
       DBEngine: "oracle-se2_12.1"
 Conditions:
+  UsePostgresDB: !Equals [postgres, !Select [0, !Split ["_", !FindInMap [ DBEngineMap, !Ref DB, DBEngine]]]]
   UseSQLServerDB: !Equals [sqlserver-se, !Select [0, !Split ["_", !FindInMap [ DBEngineMap, !Ref DB, DBEngine]]]]
   UseOracleDB: !Equals [oracle-se2, !Select [0, !Split ["_", !FindInMap [ DBEngineMap, !Ref DB, DBEngine]]]]
   UseLicensedVersion: !Or [ !Equals [sqlserver-se, !Select [0, !Split ["_", !FindInMap [ DBEngineMap, !Ref DB, DBEngine]]]], !Equals [oracle-se2, !Select [0, !Split ["_", !FindInMap [ DBEngineMap, !Ref DB, DBEngine]]]] ]
