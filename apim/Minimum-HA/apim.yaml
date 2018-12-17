@@ -83,8 +83,6 @@ Metadata:
         default: Instance Type
       DB:
         default: Database
-      OperatingSystem:
-        default: OS Version
       ProductVersion:
         default: APIM Version
 Resources:
