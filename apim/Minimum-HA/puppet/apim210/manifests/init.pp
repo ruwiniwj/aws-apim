@@ -14,7 +14,7 @@
 #  limitations under the License.
 #----------------------------------------------------------------------------
 
-class apim inherits apim::params {
+class apim210 inherits apim210::params {
 
   # Create wso2 group
   group { $user_group:
@@ -110,11 +110,11 @@ class apim inherits apim::params {
   }
 
   # Copy mysql connector to the installed directory
-  file { "/usr/lib/wso2/wso2am/2.1.0/wso2am-2.1.0/repository/components/lib/mysql-connector-java-5.1.41-bin.jar":
+  file { "/usr/lib/wso2/wso2am/2.1.0/wso2am-2.1.0/repository/components/lib/${db_connector}":
     owner  => $user,
     group  => $user_group,
     mode   => '0754',
-    source => "puppet:///modules/installers/mysql-connector-java-5.1.41-bin.jar",
+    source => "puppet:///modules/installers/${db_connector}",
   }
 
   file { "/usr/local/bin/private_ip_extractor.py":
