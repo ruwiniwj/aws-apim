@@ -15,7 +15,7 @@
 #----------------------------------------------------------------------------
 
 # For custom configurations
-class apim::custom inherits apim::params {
+class apim210::custom inherits apim210::params {
 
   if $enable_test_mode == 'true' {
     file { "/usr/lib/wso2/wso2am/2.1.0/wso2am-2.1.0/repository/components/lib/jacoco-agent.jar":
