@@ -542,11 +542,20 @@ Resources:
           Content-Disposition: attachment; filename="userdata.txt"
           #!/bin/bash
           export PATH=~/.local/bin:$PATH
-          apt-get update
-          apt install -y python-pip
+          if [[ ${OperatingSystem} == "Ubuntu1804" ]]; then
+              apt-get update
+              apt install -y puppet nfs-common
+              apt install -y python-pip
+              sed -i '/\[main\]/a server=puppet' /etc/puppet/puppet.conf
+          fi
+          if [[ ${OperatingSystem} == "CentOS7" ]]; then
+              yum install -y epel-release unzip nfs-utils
+              yum install -y python-pip
+              rpm -Uvh https://yum.puppetlabs.com/puppet5/puppet5-release-el-7.noarch.rpm
+              yum install -y puppet-agent
+              echo $'[main]\nserver = puppet\ncertname = agent1\nenvironment = production\n\runinterval = 1h' > /etc/puppetlabs/puppet/puppet.conf
+          fi
           pip install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz
-          apt-get install -y puppet
-          apt-get install -y nfs-common
           sed -i '/\[main\]/a server=puppet' /etc/puppet/puppet.conf
           export ProductVersion=2.6.0
           sed -i "s/Product_Version/2.6.0/g" /home/ubuntu/logstash-6.5.1/logstash-APIM.conf
@@ -565,8 +574,13 @@ Resources:
           mount -t nfs4 -o nfsvers=4.1 ${WSO2APIMEFSFileSystem}.efs.${AWS::Region}.amazonaws.com:/ /mnt/efs
           sleep 180
           export FACTER_profile=apim260
-          puppet agent -vt
-          sleep 10
+          if [[ ${OperatingSystem} == "Ubuntu1804" ]]; then
+              puppet agent -vt
+          fi
+          if [[ ${OperatingSystem} == "CentOS7" ]]; then
+              /opt/puppetlabs/bin/puppet agent -vt
+          fi
+          sleep 30
           if [ ! -d "/mnt/efs/server" ]; then
               mkdir -p /mnt/efs/server
               cp -r /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/deployment/server /mnt/efs
@@ -583,18 +597,30 @@ Resources:
           /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/bin/wso2server.sh start
           ${CustomUserData}
           sleep 30
+          if [[ ${OperatingSystem} == "Ubuntu1804" ]]; then
+              end=$((SECONDS+1200))
+              while [ $SECONDS -lt $end ] ; do
+                  sleep 10
+                  wget --delete-after --server-response --no-check-certificate "https://localhost:9443/carbon/admin/login.jsp"
+                  if [ $? -eq "0" ] ; then
+                      /usr/local/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource WSO2APIMNode1AutoScalingGroup --region ${AWS::Region}
+                      break
+                  fi
+              done
+          fi
+          if [[ ${OperatingSystem} == "CentOS7" ]]; then
+              end=$((SECONDS+1200))
+              while [ $SECONDS -lt $end ] ; do
+                  sleep 10
+                  wget --delete-after --server-response --no-check-certificate "https://localhost:9443/carbon/admin/login.jsp"
+                  if [ $? -eq "0" ] ; then
+                      /usr/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource WSO2APIMNode1AutoScalingGroup --region ${AWS::Region}
+                      break
+                  fi
+              done
+          fi
           echo 'export HISTTIMEFORMAT="%F %T "' >> /etc/profile.d/history.sh
           cat /dev/null > ~/.bash_history && history -c
-          end=$((SECONDS+1200))
-          sleep 30
-          while [ $SECONDS -lt $end ] ; do
-              sleep 10
-              wget --delete-after --server-response --no-check-certificate "https://localhost:9443/carbon/admin/login.jsp"
-              if [ $? -eq "0" ] ; then
-                  /usr/local/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource WSO2APIMNode1AutoScalingGroup --region ${AWS::Region}
-                  break
-              fi
-          done
     DependsOn:
       - WSO2APIMSecurityGroup
       - WSO2APIMLoadBalancer
@@ -672,11 +698,20 @@ Resources:
           Content-Disposition: attachment; filename="userdata.txt"
           #!/bin/bash
           export PATH=~/.local/bin:$PATH
-          apt-get update
-          apt install -y python-pip
+          if [[ ${OperatingSystem} == "Ubuntu1804" ]]; then
+              apt-get update
+              apt install -y puppet nfs-common
+              apt install -y python-pip
+              sed -i '/\[main\]/a server=puppet' /etc/puppet/puppet.conf
+          fi
+          if [[ ${OperatingSystem} == "CentOS7" ]]; then
+              yum install -y epel-release unzip nfs-utils
+              yum install -y python-pip
+              rpm -Uvh https://yum.puppetlabs.com/puppet5/puppet5-release-el-7.noarch.rpm
+              yum install -y puppet-agent
+              echo $'[main]\nserver = puppet\ncertname = agent2\nenvironment = production\n\runinterval = 1h' > /etc/puppetlabs/puppet/puppet.conf
+          fi
           pip install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz
-          apt-get install -y puppet
-          apt-get install -y nfs-common
           sed -i '/\[main\]/a server=puppet' /etc/puppet/puppet.conf
           export ProductVersion=2.6.0
           sed -i "s/Product_Version/2.6.0/g" /home/ubuntu/logstash-6.5.1/logstash-APIM.conf
@@ -695,8 +730,13 @@ Resources:
           mount -t nfs4 -o nfsvers=4.1 ${WSO2APIMEFSFileSystem}.efs.${AWS::Region}.amazonaws.com:/ /mnt/efs
           sleep 300
           export FACTER_profile=apim260
-          puppet agent -vt
-          sleep 10
+          if [[ ${OperatingSystem} == "Ubuntu1804" ]]; then
+              puppet agent -vt
+          fi
+          if [[ ${OperatingSystem} == "CentOS7" ]]; then
+              /opt/puppetlabs/bin/puppet agent -vt
+          fi
+          sleep 30
           if [ ! -d "/mnt/efs/server" ]; then
               mkdir -p /mnt/efs/server
               cp -r /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/repository/deployment/server /mnt/efs
@@ -713,18 +753,30 @@ Resources:
           /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/bin/wso2server.sh start
           ${CustomUserData}
           sleep 30
+          if [[ ${OperatingSystem} == "Ubuntu1804" ]]; then
+              end=$((SECONDS+1200))
+              while [ $SECONDS -lt $end ] ; do
+                  sleep 10
+                  wget --delete-after --server-response --no-check-certificate "https://localhost:9443/carbon/admin/login.jsp"
+                  if [ $? -eq "0" ] ; then
+                      /usr/local/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource WSO2APIMNode2AutoScalingGroup --region ${AWS::Region}
+                      break
+                  fi
+              done
+          fi
+          if [[ ${OperatingSystem} == "CentOS7" ]]; then
+              end=$((SECONDS+1200))
+              while [ $SECONDS -lt $end ] ; do
+                  sleep 10
+                  wget --delete-after --server-response --no-check-certificate "https://localhost:9443/carbon/admin/login.jsp"
+                  if [ $? -eq "0" ] ; then
+                      /usr/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource WSO2APIMNode2AutoScalingGroup --region ${AWS::Region}
+                      break
+                  fi
+              done
+          fi
           echo 'export HISTTIMEFORMAT="%F %T "' >> /etc/profile.d/history.sh
           cat /dev/null > ~/.bash_history && history -c
-          end=$((SECONDS+1200))
-          sleep 30
-          while [ $SECONDS -lt $end ] ; do
-              sleep 10
-              wget --delete-after --server-response --no-check-certificate "https://localhost:9443/carbon/admin/login.jsp"
-              if [ $? -eq "0" ] ; then
-                  /usr/local/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource WSO2APIMNode2AutoScalingGroup --region ${AWS::Region}
-                  break
-              fi
-          done
     DependsOn:
       - WSO2APIMSecurityGroup
       - WSO2APIMLoadBalancer
@@ -1049,7 +1101,6 @@ Parameters:
     Default: 2.6.0
     AllowedValues:
       - 2.6.0
-      - 2.1.0
   WUMPassword:
     Type: String
     Default: ""
@@ -1077,6 +1128,7 @@ Parameters:
     Default: Ubuntu1804
     AllowedValues:
      - Ubuntu1804
+     - CentOS7
   DBInstanceType:
     Description: If the selected DB Engine is "SQL Server", please use "db.m4.large" as instance type
     Type: String
@@ -1124,17 +1176,23 @@ Mappings:
        Ubuntu1804: ami-083baae2022ff79a7
   WSO2APIMAMIRegionMap:
     ap-southeast-2:
-      Ubuntu1804: ami-05b0cd92df53d8b01
+      CentOS7: ami-08925bf709e8a8a07
+      Ubuntu1804: ami-01b644a7b457ee217
     eu-west-1:
-      Ubuntu1804: ami-001b442605bc38872
+      CentOS7: ami-09366c28423a1c1f6
+      Ubuntu1804: ami-00287e39ddda4e02d
     us-east-1:
-      Ubuntu1804: ami-0305eacef0574b5fc
+      CentOS7: ami-0adcd9752e440d0f9
+      Ubuntu1804: ami-0b74d3aedcf73087c
     us-east-2:
-      Ubuntu1804: ami-020cace0c1a31a53c
+      CentOS7: ami-028f6e82e4d21dc17
+      Ubuntu1804: ami-0711a1be44e9a7c0b
     us-west-1:
-      Ubuntu1804: ami-0f8b13ab717f3c2a9
+      CentOS7: ami-06984a5b470ca1ba1
+      Ubuntu1804: ami-0477ea2787bb8898f
     us-west-2:
-      Ubuntu1804: ami-09a8480d42833b320
+      CentOS7: ami-003dd6436d67bb1a3
+      Ubuntu1804: ami-0a695960d3d986461
   DBEngineMap:
     MySQL-5.7:
       DBEngine: "mysql_5.7"
