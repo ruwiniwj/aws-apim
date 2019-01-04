@@ -19,52 +19,44 @@ Metadata:
   'AWS::CloudFormation::Interface':
     ParameterGroups:
       - Label:
-          default: Cluster Configuration
+          default: Mandatory Configurations
         Parameters:
           - AWSAccessKeyId
           - AWSAccessKeySecret
           - KeyPairName
           - WSO2InstanceType
-          - OperatingSystem
-          - ProductVersion
-      - Label:
-          default: Network Configuration
-        Parameters:
           - CertificateName
-      - Label:
-          default: Database Configuration
-        Parameters:
           - DBUsername
           - DBPassword
+          - WUMUsername
+          - WUMPassword
+      - Label:
+          default: Advanced Configurations
+        Parameters:
+          - OperatingSystem
+          - ProductVersion
           - DB
           - DBAllocationStorage
           - DBInstanceType
-      - Label:
-          default: Other Configuration
-        Parameters:
           - CustomUserData
           - JDK
           - InternalPrepareForTest
-      - Label:
-          default: WUM Credentials
-        Parameters:
-          - WUMUsername
-          - WUMPassword
+          - ElasticSearchEndpoint
     ParameterLabels:
       AWSAccessKeyId:
         default: AWS Access Key ID
       AWSAccessKeySecret:
         default: AWS Access Secret Key
       OperatingSystem:
-        default: OperatingSystem
+        default: Operating System
       CertificateName:
         default: SSL Certificate Name
       KeyPairName:
         default: Key Pair Name
       DBUsername:
-        default: Username
+        default: DB Username
       DBPassword:
-        default: Password
+        default: DB Password
       DBAllocationStorage:
         default: Allocation Storage
       DBInstanceType:
@@ -76,15 +68,18 @@ Metadata:
       CustomUserData:
         default: Customer User Data
       WUMUsername:
-        default: Username
+        default: WSO2 Username
       WUMPassword:
-        default: Password
+        default: WSO2 Password
       WSO2InstanceType:
         default: Instance Type
       DB:
         default: Database
       ProductVersion:
         default: APIM Version
+      ElasticSearchEndpoint:
+        default: ElasticSearch Endpoint
+
 Resources:
   # networking configurations
   WSO2APIMVPC:
@@ -580,7 +575,9 @@ Resources:
           echo 'export HISTTIMEFORMAT="%F %T "' >> /etc/profile.d/history.sh
           cat /dev/null > ~/.bash_history && history -c
           end=$((SECONDS+1200))
+          sleep 30
           while [ $SECONDS -lt $end ] ; do
+              sleep 10
               wget --delete-after --server-response --no-check-certificate "https://localhost:9443/carbon/admin/login.jsp"
               if [ $? -eq "0" ] ; then
                   /usr/local/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource WSO2APIMNode1AutoScalingGroup --region ${AWS::Region}
@@ -707,7 +704,9 @@ Resources:
           echo 'export HISTTIMEFORMAT="%F %T "' >> /etc/profile.d/history.sh
           cat /dev/null > ~/.bash_history && history -c
           end=$((SECONDS+1200))
+          sleep 30
           while [ $SECONDS -lt $end ] ; do
+              sleep 10
               wget --delete-after --server-response --no-check-certificate "https://localhost:9443/carbon/admin/login.jsp"
               if [ $? -eq "0" ] ; then
                   /usr/local/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource WSO2APIMNode2AutoScalingGroup --region ${AWS::Region}
