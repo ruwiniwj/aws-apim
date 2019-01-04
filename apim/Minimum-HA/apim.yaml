@@ -475,8 +475,18 @@ Resources:
                 - /g" /usr/local/bin/provision_db_apim.sh
             - !Join
               - ''
-              - - sed -i "s/CF_DBMS/
+              - - sed -i "s/CF_DBMS_NAME/
                 - !Select [0, !Split ["_", !FindInMap [ DBEngineMap, !Ref DB, DBEngine]]]
+                - /g" /usr/local/bin/provision_db_apim.sh
+            - !Join
+              - ''
+              - - sed -i "s/CF_DBMS_VERSION/
+                - !Select [1, !Split ["_", !FindInMap [ DBEngineMap, !Ref DB, DBEngine]]]
+                - /g" /usr/local/bin/provision_db_apim.sh
+            - !Join
+              - ''
+              - - sed -i "s/CF_PRODUCT_VERSION/
+                - 2.6.0
                 - /g" /usr/local/bin/provision_db_apim.sh
             - bash /usr/local/bin/provision_db_apim.sh
   PuppetMasterSecurityGroup:
@@ -572,6 +582,7 @@ Resources:
           echo "${WSO2APIMEFSFileSystem}:/ /mnt/efs efs defaults,_netdev 0 0" >> /etc/fstab
           /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/bin/wso2server.sh start
           ${CustomUserData}
+          sleep 30
           echo 'export HISTTIMEFORMAT="%F %T "' >> /etc/profile.d/history.sh
           cat /dev/null > ~/.bash_history && history -c
           end=$((SECONDS+1200))
@@ -701,6 +712,7 @@ Resources:
           echo "${WSO2APIMEFSFileSystem}:/ /mnt/efs efs defaults,_netdev 0 0" >> /etc/fstab
           /usr/lib/wso2/wso2am/2.6.0/wso2am-2.6.0/bin/wso2server.sh start
           ${CustomUserData}
+          sleep 30
           echo 'export HISTTIMEFORMAT="%F %T "' >> /etc/profile.d/history.sh
           cat /dev/null > ~/.bash_history && history -c
           end=$((SECONDS+1200))
@@ -1099,17 +1111,17 @@ Parameters:
 Mappings:
   WSO2PuppetMasterRegionMap:
     ap-southeast-2:
-       Ubuntu1804: ami-0d24dc7e4ebfc8b5d
+       Ubuntu1804: ami-0a6ef170696b70a3b
     eu-west-1:
-       Ubuntu1804: ami-0dfffa6505c07c6e1
+       Ubuntu1804: ami-0892b1c71e9d9bd9f
     us-east-1:
-       Ubuntu1804: ami-0999db83d618c9bea
+       Ubuntu1804: ami-0ec024549fd9b0a69
     us-east-2:
-       Ubuntu1804: ami-028004f486c2d1268
+       Ubuntu1804: ami-0e3368e574a3ba615
     us-west-1:
-       Ubuntu1804: ami-033d5b891fda76d3d
+       Ubuntu1804: ami-0af35ec65cb1cbda3
     us-west-2:
-       Ubuntu1804: ami-0ff54cfba6d1d3202
+       Ubuntu1804: ami-083baae2022ff79a7
   WSO2APIMAMIRegionMap:
     ap-southeast-2:
       Ubuntu1804: ami-05b0cd92df53d8b01
