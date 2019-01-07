@@ -827,7 +827,7 @@ Resources:
       HealthCheckProtocol: HTTPS
       HealthCheckTimeoutSeconds: 5
       HealthyThresholdCount: 4
-      HealthCheckPath: /
+      HealthCheckPath: /services
       HealthCheckPort: 8243
       Matcher:
         HttpCode: 200
